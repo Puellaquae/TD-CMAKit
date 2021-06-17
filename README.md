@@ -1,0 +1,84 @@
+# TD-CMAKit
+
+**磨刀不误砍柴工**
+
+2020/2021(2) 计算机组成原理 TD-CMA 指令微指令相关工具
+
+目前实现
+
+- 微指令的汇编器
+
+## 例子
+
+### 微指令汇编
+
+```
+.START:
+AR=PC
+IR=MEM
+<P1:30>
+	0:ADD
+	2:IN
+	4:OUT
+	5:HLT
+	C:JMP
+
+.ADD:
+	A=RS
+	B=RD
+	RD=A+B
+	GOTO START
+
+.IN:
+	RD=IN
+	GOTO START
+
+.OUT:
+	AR=MEM
+	OUT=RS
+	GOTO START
+
+.HLT
+	NOP
+	GOTO HLT
+
+.JMP:
+	AR=PC
+	PC=MEM
+	GOTO START
+```
+
+### 伪微指令
+
+```
+00 LDAR PC_B LDPC 01
+01 LDIR RD P1 30
+02 LDB RD_B 03
+03 LDRi ADD ALU_B 00
+04 WR IOM RS_B 00
+05 LOAD LDPC RD 00
+30 LDA RS_B 02
+32 LDRi RD IOM 00
+34 LDAR RD 04
+35 35
+3C LDAR PC_B LDPC 05
+```
+
+### Binary
+
+```
+$M 00 006D41
+$M 01 107070
+$M 02 002603
+$M 03 04B200
+$M 04 280400
+```
+
+### 根据微指令给出的指令提示
+```
+ADD: 0000XXXX, Use RS, Use RD, Use RD
+IN: 0010XXXX, Use RD
+OUT: 0100XXXX, Use RS
+HLT: 0101XXXX
+JMP: 11XXXX00, Read Next Byte
+```
