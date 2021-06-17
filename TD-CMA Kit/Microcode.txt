@@ -1,5 +1,5 @@
 ﻿.START:
-,
+AR=PC
 IR=MEM
 <P1:30>
 	0:ADD
