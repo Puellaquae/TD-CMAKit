@@ -1,5 +1,5 @@
 ﻿.START:
-,
+AR=PC
 IR=MEM
 <P1:30>
 	0:ADD
@@ -8,26 +8,26 @@ IR=MEM
 	5:HLT
 	C:JMP
 
-.ADD:
+.ADD#:
 	A=RS
 	B=RD
 	RD=A+B
 	GOTO START
 
-.IN:
+.IN#:
 	RD=IN
 	GOTO START
 
-.OUT:
+.OUT#:
 	AR=MEM
 	OUT=RS
 	GOTO START
 
-.HLT
+.HLT#:
 	NOP
 	GOTO HLT
 
-.JMP:
+.JMP#:
 	AR=PC
 	PC=MEM
 	GOTO START

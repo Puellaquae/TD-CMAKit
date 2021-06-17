@@ -180,37 +180,105 @@ namespace TD_CMAKit
             return (asm, instructionSet);
         }
 
-        void CompileLabel(string label, int placeHint)
+        void CompileLabel(string label, int placeHint, int offset = 0, int fromTest = 0, string certainOpcode = "XXXXXXXX")
         {
             int idx = labelTable[label];
-            int place = placeHint;
+            bool isInstruct = codes[idx - 1].Trim(',', ':').EndsWith('#');
+            certainOpcode = CalcCertainOpcode(certainOpcode, offset, fromTest);
+            if (isInstruct)
+            {
+                instructionSet[label] = certainOpcode;
+                currentIST = label;
+            }
+
+            int place = placeHint + offset;
             labelInRealTable[label] = place;
             for (; idx < codes.Length; idx++)
             {
+                // 跳过标号
                 string code = codes[idx];
-                if (codes[idx + 1].StartsWith("<P"))
+                if (code.StartsWith('.'))
+                {
+                    continue;
+                }
+
+                // 这里下一行会影响指令的跳转和决定块处理的结束，要前看一行
+                string nextLine = codes[idx + 1];
+                if (nextLine.StartsWith("<P"))
                 {
                     string[] tests = codes[idx + 1].Trim('<', '>').Split(':');
                     int next = int.Parse(tests[1], NumberStyles.HexNumber);
                     CompileAssign(idx, place, next, tests[0]);
                     if (tests[0] == "P1")
                     {
-                        CompileTestP1(idx + 2, next);
+                        CompileTestP1(idx + 2, next, certainOpcode);
+                    }
+                    else if (tests[0] == "P2")
+                    {
+                        CompileTestP2(idx + 2, next, certainOpcode);
+                    }
+                    else if (tests[0] == "P3")
+                    {
+                        CompileTestP3(idx + 2, next, certainOpcode);
                     }
                     else
                     {
                         throw new NotImplementedException();
                     }
 
-                    return;
+                    break;
+                }
+                else if (nextLine.StartsWith("GOTO"))
+                {
+                    string nextLabel = nextLine.Split(' ')[1];
+                    int next = labelInRealTable[nextLabel];
+                    CompileAssign(idx, place, next);
+
+                    break;
                 }
 
                 place = CompileAssign(idx, place);
             }
+
+            // 跳出当前块一律视为指令的结束
+            currentIST = null;
         }
 
-        void CompileTestP1(int idx, int basePlace)
+        private string CalcCertainOpcode(string certainOpcode, int offset, int fromTest)
         {
+            char[] ist = certainOpcode.ToCharArray();
+            if (fromTest == 1)
+            {
+                if (offset >= 0b1100)
+                {
+                    ist[7 - 7] = '1';
+                    ist[7 - 6] = '1';
+                    string i1i0 = Convert.ToString(offset & 0b11, 2).PadLeft(2, '0');
+                    ist[7 - 1] = i1i0[1 - 1];
+                    ist[7 - 0] = i1i0[1 - 0];
+                }
+                else
+                {
+                    string i7i6i5i4 = Convert.ToString(offset & 0b1111, 2).PadLeft(4, '0');
+                    ist[7 - 7] = i7i6i5i4[3 - 3];
+                    ist[7 - 6] = i7i6i5i4[3 - 2];
+                    ist[7 - 5] = i7i6i5i4[3 - 1];
+                    ist[7 - 4] = i7i6i5i4[3 - 0];
+                }
+            }
+            else if (fromTest == 2)
+            {
+                string i5i4 = Convert.ToString(offset & 0b11, 2).PadLeft(2, '0');
+                ist[7 - 5] = i5i4[1 - 1];
+                ist[7 - 4] = i5i4[1 - 0];
+            }
+            
+            return new string(ist);
+        }
+
+        void CompileTestP3(int idx, int basePlace, string certainOpcode)
+        {
+            basePlace &= 0b101111;
             for (; idx < codes.Length; idx++)
             {
                 string[] tokens = codes[idx].Trim(':').Split(':');
@@ -218,43 +286,42 @@ namespace TD_CMAKit
                 {
                     return;
                 }
-
-                CompileInstruct(tokens[1], basePlace, int.Parse(tokens[0], NumberStyles.HexNumber));
+                int offset = int.Parse(tokens[0], NumberStyles.HexNumber);
+                offset &= 0b10000;
+                CompileLabel(tokens[1], basePlace, offset, 3, certainOpcode);
             }
         }
 
-        void CompileInstruct(string label, int basePlace, int offset)
+        void CompileTestP2(int idx, int basePlace, string certainOpcode)
         {
-            string ist;
-            if (offset <= 0b1011)
-            {
-
-                ist = $"{Convert.ToString(offset & 0b1111, 2).PadLeft(4, '0')}XXXX";
-            }
-            else
-            {
-                ist = $"11XXXX{Convert.ToString(offset & 0b11, 2).PadLeft(2, '0')}";
-            }
-
-            instructionSet[label] = ist;
-            currentIST = label;
-            int idx = labelTable[label];
-            int place = basePlace + offset;
-            labelInRealTable[label] = place;
+            basePlace &= 0b111100;
             for (; idx < codes.Length; idx++)
             {
-                if (codes[idx + 1].StartsWith("GOTO"))
+                string[] tokens = codes[idx].Trim(':').Split(':');
+                if (tokens.Length != 2)
                 {
-                    string nextLabel = codes[idx + 1].Split(' ')[1];
-                    int next = labelInRealTable[nextLabel];
-                    CompileAssign(idx, place, next);
-                    currentIST = null;
                     return;
                 }
-
-                place = CompileAssign(idx, place);
+                int offset = int.Parse(tokens[0], NumberStyles.HexNumber);
+                offset &= 0b11;
+                CompileLabel(tokens[1], basePlace, offset, 2, certainOpcode);
             }
-            currentIST = null;
+        }
+
+        void CompileTestP1(int idx, int basePlace, string certainOpcode)
+        {
+            basePlace &= 0b110000;
+            for (; idx < codes.Length; idx++)
+            {
+                string[] tokens = codes[idx].Trim(':').Split(':');
+                if (tokens.Length != 2)
+                {
+                    return;
+                }
+                int offset = int.Parse(tokens[0], NumberStyles.HexNumber);
+                offset &= 0b1111;
+                CompileLabel(tokens[1], basePlace, offset, 1, certainOpcode);
+            }
         }
 
         void CompileAssign(int lineIdx, int placeHint, int nextHint, string test = null)
@@ -299,8 +366,9 @@ namespace TD_CMAKit
                 string code = codes[i];
                 if (code.StartsWith('.'))
                 {
-                    labelTable[code.Trim('.', ':')] = i + 1;
-                    labelInRealTable[code.Trim('.', ':')] = -1;
+                    string label = code.Trim('.', ':', '#');
+                    labelTable[label] = i + 1;
+                    labelInRealTable[label] = -1;
                 }
             }
         }
