@@ -1,0 +1,33 @@
+﻿.START:
+,
+IR=MEM
+<P1:30>
+	0:ADD
+	2:IN
+	4:OUT
+	5:HLT
+	C:JMP
+
+.ADD:
+	A=RS
+	B=RD
+	RD=A+B
+	GOTO START
+
+.IN:
+	RD=IN
+	GOTO START
+
+.OUT:
+	AR=MEM
+	OUT=RS
+	GOTO START
+
+.HLT
+	NOP
+	GOTO HLT
+
+.JMP:
+	AR=PC
+	PC=MEM
+	GOTO START
