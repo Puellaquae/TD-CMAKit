@@ -23,26 +23,26 @@ IR=MEM
 	5:HLT
 	C:JMP
 
-.ADD:
+.ADD#:
 	A=RS
 	B=RD
 	RD=A+B
 	GOTO START
 
-.IN:
+.IN#:
 	RD=IN
 	GOTO START
 
-.OUT:
+.OUT#:
 	AR=MEM
 	OUT=RS
 	GOTO START
 
-.HLT
+.HLT#:
 	NOP
 	GOTO HLT
 
-.JMP:
+.JMP#:
 	AR=PC
 	PC=MEM
 	GOTO START
@@ -82,9 +82,9 @@ $M 3C 006D45
 
 ### 根据微指令给出的指令提示
 ```
-ADD: 0000XXXX, Use RS, Use RD, Use RD
-IN: 0010XXXX, Use RD
-OUT: 0100XXXX, Use RS
-HLT: 0101XXXX
-JMP: 11XXXX00, Read Next Byte
+ADD: 0000RSRD, 1 bits,
+IN: 0010XXRD, 1 bits, Use In Need AR 0bXX01XXXX.
+OUT: 0100RSXX, 1 bits, Use Out Need AR 0bXX10XXXX.
+HLT: 0101XXXX, 1 bits,
+JMP: 11XXXX00, 2 bits,
 ```
