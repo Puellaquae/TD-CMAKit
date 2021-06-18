@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace TD_CMAKit
 {
-    public class Compiler
+    public class MicrocodeCompiler
     {
         public enum LEFT
         {
@@ -48,8 +48,17 @@ namespace TD_CMAKit
         private Dictionary<int, string> asmCodes = new Dictionary<int, string>();
         private Dictionary<string, int> labelTable = new Dictionary<string, int>();
         private Dictionary<string, int> labelInRealTable = new Dictionary<string, int>();
-        private Dictionary<string, string> instructionSet = new Dictionary<string, string>();
-        string currentIST = null;
+
+        public class InstructionInf
+        {
+            public string OpCode { get; set; } = "XXXXXXXX";
+            public int BitLen { get; set; } = 1;
+            public string Additional { get; set; } = "";
+
+        }
+
+        private Dictionary<string, InstructionInf> instructionSet = new Dictionary<string, InstructionInf>();
+        private string currentIST = null;
         private static LEFT LeftParse(string left)
         {
             _ = Enum.TryParse(left, out LEFT res);
@@ -75,36 +84,56 @@ namespace TD_CMAKit
             };
         }
 
-        public Compiler(string[] codes)
+        public MicrocodeCompiler(string[] codes)
         {
             this.codes = codes;
         }
 
-        public string TransAssign(int place, string left, string right, int next, string test = null)
+        public string TransAssign(int place, string left, string right, int next, ref int bitLen, string test = null)
         {
             LEFT l = LeftParse(left);
             RIGHT r = RightParse(right);
+
+            if (r == RIGHT.PC)
+            {
+                bitLen++;
+            }
+
             if (currentIST != null)
             {
+                instructionSet[currentIST].BitLen = bitLen;
+
                 if (l == LEFT.RS || r == RIGHT.RS)
                 {
-                    instructionSet[currentIST] += ", Use RS";
+                    string ist = instructionSet[currentIST].OpCode;
+                    if (ist[4..6] == "XX" || ist[4..6] == "RS")
+                    {
+                        instructionSet[currentIST].OpCode = ist[0..4] + "RS" + ist[6..];
+                    }
+                    else
+                    {
+                        instructionSet[currentIST].Additional += "I4I5 Should Reserve for RS";
+                    }
                 }
-                else if (l == LEFT.RD || r == RIGHT.RD)
+                if (l == LEFT.RD || r == RIGHT.RD)
                 {
-                    instructionSet[currentIST] += ", Use RD";
+                    string ist = instructionSet[currentIST].OpCode;
+                    if (ist[6..8] == "XX" || ist[6..8] == "RD")
+                    {
+                        instructionSet[currentIST].OpCode = ist[0..6] + "RD" + ist[8..];
+                    }
+                    else
+                    {
+                        instructionSet[currentIST].Additional += "I6I7 Should Reserve for RD";
+                    }
                 }
-                else if (r == RIGHT.PC)
+                if (r == RIGHT.IN)
                 {
-                    instructionSet[currentIST] += ", Read Next Byte";
+                    instructionSet[currentIST].Additional += "Use In Need AR 0bXX01XXXX. ";
                 }
-                else if (r == RIGHT.IN)
+                if (l == LEFT.OUT)
                 {
-                    instructionSet[currentIST] += ", Use In Need AR 0b01";
-                }
-                else if (l == LEFT.OUT)
-                {
-                    instructionSet[currentIST] += ", Use Out Need AR 0b10";
+                    instructionSet[currentIST].Additional += "Use Out Need AR 0bXX10XXXX. ";
                 }
             }
             return test is null ? $"{place:X2} {GetSign(l)} {GetSign(r)} {next:X2}" : $"{place:X2} {GetSign(l)} {GetSign(r)} {test} {next:X2}";
@@ -158,7 +187,7 @@ namespace TD_CMAKit
             };
         }
 
-        int GetNextAvailableIndex()
+        private int GetNextAvailableIndex()
         {
             int i = 0;
 
@@ -169,30 +198,47 @@ namespace TD_CMAKit
             return i;
         }
 
-        public (string[] asmCodes, Dictionary<string, string> instructionSetHint) Compile()
+        public (string[] asmCodes, Dictionary<string, InstructionInf> instructionSetHint) Compile()
         {
             BuildLabelTable();
+            ReservePlaceForTestBranch();
 
             CompileLabel("START", GetNextAvailableIndex());
 
-            string[] asm = (from kp in asmCodes orderby kp.Key select kp.Value).ToArray();
-
+            string[] asm = (from kp in asmCodes where kp.Value != "Reserve" orderby kp.Key select kp.Value).ToArray();
             return (asm, instructionSet);
         }
 
-        void CompileLabel(string label, int placeHint, int offset = 0, int fromTest = 0, string certainOpcode = "XXXXXXXX")
+        private void CompileLabel(string label, int placeHint, int offset = 0, int fromTest = 0, string certainOpcode = "XXXXXXXX", int bitLen = 0)
         {
             int idx = labelTable[label];
             bool isInstruct = codes[idx - 1].Trim(',', ':').EndsWith('#');
             certainOpcode = CalcCertainOpcode(certainOpcode, offset, fromTest);
             if (isInstruct)
             {
-                instructionSet[label] = certainOpcode;
+                if (!instructionSet.ContainsKey(label))
+                {
+                    instructionSet.Add(label, new InstructionInf());
+                }
+
+                instructionSet[label].OpCode = certainOpcode;
+                instructionSet[label].BitLen = bitLen;
                 currentIST = label;
             }
 
             int place = placeHint + offset;
             labelInRealTable[label] = place;
+
+            if (codes[idx].StartsWith("GOTO"))
+            {
+                string nextLabel = codes[idx].Split(' ')[1];
+                int next = labelInRealTable[nextLabel];
+                Nop(place, next);
+
+                currentIST = null;
+                return;
+            }
+
             for (; idx < codes.Length; idx++)
             {
                 // 跳过标号
@@ -208,18 +254,18 @@ namespace TD_CMAKit
                 {
                     string[] tests = codes[idx + 1].Trim('<', '>').Split(':');
                     int next = int.Parse(tests[1], NumberStyles.HexNumber);
-                    CompileAssign(idx, place, next, tests[0]);
+                    CompileAssign(idx, place, next, ref bitLen, tests[0]);
                     if (tests[0] == "P1")
                     {
-                        CompileTestP1(idx + 2, next, certainOpcode);
+                        CompileTestP1(idx + 2, next, certainOpcode, bitLen);
                     }
                     else if (tests[0] == "P2")
                     {
-                        CompileTestP2(idx + 2, next, certainOpcode);
+                        CompileTestP2(idx + 2, next, certainOpcode, bitLen);
                     }
                     else if (tests[0] == "P3")
                     {
-                        CompileTestP3(idx + 2, next, certainOpcode);
+                        CompileTestP3(idx + 2, next, certainOpcode, bitLen);
                     }
                     else
                     {
@@ -232,19 +278,19 @@ namespace TD_CMAKit
                 {
                     string nextLabel = nextLine.Split(' ')[1];
                     int next = labelInRealTable[nextLabel];
-                    CompileAssign(idx, place, next);
+                    CompileAssign(idx, place, next, ref bitLen);
 
                     break;
                 }
 
-                place = CompileAssign(idx, place);
+                place = CompileAssign(idx, place, ref bitLen);
             }
 
             // 跳出当前块一律视为指令的结束
             currentIST = null;
         }
 
-        private string CalcCertainOpcode(string certainOpcode, int offset, int fromTest)
+        private static string CalcCertainOpcode(string certainOpcode, int offset, int fromTest)
         {
             char[] ist = certainOpcode.ToCharArray();
             if (fromTest == 1)
@@ -272,11 +318,11 @@ namespace TD_CMAKit
                 ist[7 - 5] = i5i4[1 - 1];
                 ist[7 - 4] = i5i4[1 - 0];
             }
-            
+
             return new string(ist);
         }
 
-        void CompileTestP3(int idx, int basePlace, string certainOpcode)
+        private void CompileTestP3(int idx, int basePlace, string certainOpcode, int bitLen)
         {
             basePlace &= 0b101111;
             for (; idx < codes.Length; idx++)
@@ -288,11 +334,11 @@ namespace TD_CMAKit
                 }
                 int offset = int.Parse(tokens[0], NumberStyles.HexNumber);
                 offset &= 0b10000;
-                CompileLabel(tokens[1], basePlace, offset, 3, certainOpcode);
+                CompileLabel(tokens[1], basePlace, offset, 3, certainOpcode, bitLen);
             }
         }
 
-        void CompileTestP2(int idx, int basePlace, string certainOpcode)
+        private void CompileTestP2(int idx, int basePlace, string certainOpcode, int bitLen)
         {
             basePlace &= 0b111100;
             for (; idx < codes.Length; idx++)
@@ -304,11 +350,11 @@ namespace TD_CMAKit
                 }
                 int offset = int.Parse(tokens[0], NumberStyles.HexNumber);
                 offset &= 0b11;
-                CompileLabel(tokens[1], basePlace, offset, 2, certainOpcode);
+                CompileLabel(tokens[1], basePlace, offset, 2, certainOpcode, bitLen);
             }
         }
 
-        void CompileTestP1(int idx, int basePlace, string certainOpcode)
+        private void CompileTestP1(int idx, int basePlace, string certainOpcode, int bitLen)
         {
             basePlace &= 0b110000;
             for (; idx < codes.Length; idx++)
@@ -320,11 +366,11 @@ namespace TD_CMAKit
                 }
                 int offset = int.Parse(tokens[0], NumberStyles.HexNumber);
                 offset &= 0b1111;
-                CompileLabel(tokens[1], basePlace, offset, 1, certainOpcode);
+                CompileLabel(tokens[1], basePlace, offset, 1, certainOpcode, bitLen);
             }
         }
 
-        void CompileAssign(int lineIdx, int placeHint, int nextHint, string test = null)
+        private void CompileAssign(int lineIdx, int placeHint, int nextHint, ref int bitLen, string test = null)
         {
             string code = codes[lineIdx];
             if (code == "NOP")
@@ -335,31 +381,30 @@ namespace TD_CMAKit
             string[] tokens = code.Split('=');
             string l = tokens[0];
             string r = tokens[1];
-            string asm = TransAssign(placeHint, l, r, nextHint, test);
+            string asm = TransAssign(placeHint, l, r, nextHint, ref bitLen, test);
             asmCodes[placeHint] = asm;
         }
 
-        int CompileAssign(int lineIdx, int placeHint, string test = null)
+        private int CompileAssign(int lineIdx, int placeHint, ref int bitLen)
         {
             string code = codes[lineIdx];
             asmCodes[placeHint] = "Placeholder";
             int next = GetNextAvailableIndex();
             if (code == "NOP")
             {
-
-                asmCodes[placeHint] = Nop(placeHint, next, test);
+                asmCodes[placeHint] = Nop(placeHint, next);
                 return next;
             }
             string[] tokens = code.Split('=');
             string l = tokens[0];
             string r = tokens[1];
 
-            string asm = TransAssign(placeHint, l, r, next);
+            string asm = TransAssign(placeHint, l, r, next, ref bitLen);
             asmCodes[placeHint] = asm;
             return next;
         }
 
-        void BuildLabelTable()
+        private void BuildLabelTable()
         {
             for (int i = 0; i < codes.Length; i++)
             {
@@ -369,6 +414,39 @@ namespace TD_CMAKit
                     string label = code.Trim('.', ':', '#');
                     labelTable[label] = i + 1;
                     labelInRealTable[label] = -1;
+                }
+            }
+        }
+
+        private void ReservePlaceForTestBranch()
+        {
+            for (int i = 0; i < codes.Length; i++)
+            {
+                string code = codes[i];
+                if (code.StartsWith("<P"))
+                {
+                    string[] tests = code.Trim('<', '>').Split(':');
+                    int basePlace = int.Parse(tests[1], NumberStyles.HexNumber);
+                    if (tests[0] == "P1")
+                    {
+                        for (int o = 0; o < 0b1111; o++)
+                        {
+                            asmCodes[basePlace + o] = "Reserve";
+                        }
+                    }
+                    else if (tests[0] == "P2")
+                    {
+                        asmCodes[basePlace + 0] = "Reserve";
+                        asmCodes[basePlace + 1] = "Reserve";
+                        asmCodes[basePlace + 2] = "Reserve";
+                        asmCodes[basePlace + 3] = "Reserve";
+
+                    }
+                    else if (tests[0] == "P3")
+                    {
+                        asmCodes[basePlace + 0] = "Reserve";
+                        asmCodes[basePlace + 0b10000] = "Reserve";
+                    }
                 }
             }
         }

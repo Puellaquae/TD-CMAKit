@@ -1,0 +1,115 @@
+.START:
+    AR=PC
+    IR=MEM
+    <P1:30>
+        0:ADD
+        1:AND
+        2:IN
+        3:OUT
+        4:MOV
+        5:HLT
+        6:LDI
+        7:INC
+        8:SUB
+        9:OR
+        A:RR
+        B:Reserve
+        C:Direct
+
+.ADD#:
+    A=RD
+    B=RS
+    RD=A+B
+    GOTO START
+
+.AND#:
+    A=RD
+    B=RS
+    RD=A&B
+    GOTO START
+
+.IN#:
+    AR=PC
+    AR=MEM
+    RD=IN
+    GOTO START
+
+.OUT#:
+    AR=PC
+    AR=MEM
+    OUT=RS
+    GOTO START
+
+.MOV#:
+    RD=RS
+    GOTO START
+
+.HLT#:
+    GOTO HLT
+
+.LDI#:
+    AR=PC
+    RD=MEM
+    GOTO START
+
+.INC#:
+    A=RD
+    RD=A+1
+    GOTO START
+
+.SUB#:
+    A=RD
+    B=RS
+    RD=A-B
+    GOTO START
+
+.OR#:
+    A=RD
+    B=RS
+    RD=A|B
+    GOTO START
+
+.RR#:
+    A=RD
+    B=RS
+    RD=A<<<B
+    GOTO START
+
+.Reserve:
+    GOTO START
+
+.Direct:
+    AR=PC
+    A=MEM
+    AR=MEM
+    <P2:0C>
+        0:LAD
+        1:STA
+        2:JMP
+        3:BZC
+
+.LAD#:
+    RD=MEM
+    GOTO START
+
+.STA#:
+    MEM=RD
+    GOTO START
+
+.JMP#:
+    PC=A
+    GOTO START
+
+.BZC#:
+    NOP
+    <P3:0B>
+        0:BZCN
+        1:BZCY
+
+.BZCN:
+    NOP
+    GOTO START
+
+.BZCY:
+    PC=A
+    GOTO START

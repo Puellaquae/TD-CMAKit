@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using static TD_CMAKit.MicrocodeCompiler;
 
 namespace TD_CMAKit
 {
@@ -11,7 +9,7 @@ namespace TD_CMAKit
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Input the file path");
+            Console.WriteLine("Input the microcode file path");
             using StreamReader reader = new(Console.ReadLine().Trim('"'));
             List<string> codes = new();
             string line;
@@ -23,9 +21,9 @@ namespace TD_CMAKit
                     codes.Add(line);
                 }
             }
-            Compiler compiler = new(codes.ToArray());
+            MicrocodeCompiler compiler = new(codes.ToArray());
 
-            (string[] asm, Dictionary<string, string> ist) = compiler.Compile();
+            (string[] asm, Dictionary<string, InstructionInf> ist) = compiler.Compile();
             foreach (string a in asm)
             {
                 Console.WriteLine(a);
@@ -33,16 +31,16 @@ namespace TD_CMAKit
 
             Console.WriteLine();
 
-            foreach ((string key, string value) in ist)
+            foreach ((string key, InstructionInf value) in ist)
             {
-                Console.WriteLine($"{key}: {value}");
+                Console.WriteLine($"{key}: {value.OpCode}, {value.BitLen} bits, {value.Additional}");
             }
 
             Console.WriteLine();
 
             foreach (string a in asm)
             {
-                Console.WriteLine(Assembler.Translate(a));
+                Console.WriteLine(MicrocodeAssembler.Translate(a));
             }
         }
     }
