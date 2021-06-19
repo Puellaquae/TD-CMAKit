@@ -1,0 +1,81 @@
+.START:
+    AR=PC
+    IR=MEM
+    <P1:30>
+        0:ZERO
+        1:INC
+        2:IN
+        3:SHL
+        4:OUT
+        5:JMP
+        6:JA
+        7:ADD
+        8:SUB
+        9:CMP
+        A:SET
+
+.ZERO#:
+    A=RS
+    B=~A
+    RS=A&B
+    GOTO START
+
+.INC#:
+    A=RS
+    RS=A+1
+    GOTO START
+
+.IN#:
+    RD=IN
+    GOTO START
+
+.SHL#:
+    A=RS
+    RS=A<<1
+    GOTO START
+
+.OUT#:
+    OUT=RS
+    GOTO START
+
+.JMP#:
+    AR=PC
+    PC=MEM
+    GOTO START
+
+.JA#:
+    AR=PC
+    A=MEM
+    <P3:10>
+        00:JAN
+        10:JAY
+
+.JAN:
+    GOTO START
+
+.JAY:
+    PC=A
+    GOTO START
+
+.ADD#:
+    A=RS
+    B=RD
+    RS=A+B
+    GOTO START
+
+.SUB#:
+    A=RS
+    B=RD
+    RS=A-B
+    GOTO START
+
+.CMP#:
+    A=RS
+    B=RD
+    A=A-B
+    GOTO START
+
+.SET#:
+    AR=PC
+    RS=MEM
+    GOTO START

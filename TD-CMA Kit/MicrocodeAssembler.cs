@@ -15,6 +15,7 @@ namespace TD_CMAKit
             RD = 0b00010,
             IOM = 0b00001
         }
+
         public enum A
         {
             NOP = 0,
@@ -91,11 +92,19 @@ namespace TD_CMAKit
 
         };
 
-        public static Instruct Translate(String op)
+        /// <summary>
+        /// 将伪微指令转换为二进制微指令
+        /// </summary>
+        /// <param name="op">伪微指令</param>
+        /// <exception cref="SignConflictException"></exception>
+        /// <exception cref="UnknownTokenException"></exception>
+        /// <returns></returns>
+        public static Instruct Translate(string op)
         {
             Instruct instruct = new();
-            String[] tokens = op.Split(' ', '\t');
+            string[] tokens = op.Split(' ', '\t');
             instruct.Place = int.Parse(tokens[0], NumberStyles.HexNumber);
+            bool useFieldA = false, useFieldB = false, useFieldC = false, useALU = false;
             for (int i = 1; i < tokens.Length - 1; i++)
             {
                 if (Enum.TryParse(tokens[i], out High h))
@@ -104,19 +113,39 @@ namespace TD_CMAKit
                 }
                 else if (Enum.TryParse(tokens[i], out A a))
                 {
+                    if (useFieldA)
+                    {
+                        throw new SignConflictException($"Field A {instruct.FieldA} conflict with {a} in {op}");
+                    }
                     instruct.FieldA = a;
+                    useFieldA = true;
                 }
                 else if (Enum.TryParse(tokens[i], out B b))
                 {
+                    if (useFieldB)
+                    {
+                        throw new SignConflictException($"Field B {instruct.FieldB} conflict with {b} in {op}");
+                    }
                     instruct.FieldB = b;
+                    useFieldB = true;
                 }
                 else if (Enum.TryParse(tokens[i], out C c))
                 {
+                    if (useFieldC)
+                    {
+                        throw new SignConflictException($"Field C {instruct.FieldC} conflict with {c} in {op}");
+                    }
                     instruct.FieldC = c;
+                    useFieldC = true;
                 }
                 else if (Enum.TryParse(tokens[i], out ALU alu))
                 {
+                    if (useALU)
+                    {
+                        throw new SignConflictException($"ALU {instruct.S} conflict with {alu} in {op}");
+                    }
                     instruct.S = alu;
+                    useALU = true;
                 }
                 else if (tokens[i] == "")
                 {
@@ -124,9 +153,8 @@ namespace TD_CMAKit
                 }
                 else
                 {
-                    throw new Exception($"Unknown Sign {tokens[i]}");
+                    throw new UnknownTokenException($"Unknown Token {tokens[i]} in {op}");
                 }
-
             }
 
             instruct.Address = int.Parse(tokens[^1], NumberStyles.HexNumber);

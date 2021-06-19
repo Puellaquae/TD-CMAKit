@@ -10,18 +10,18 @@ namespace TD_CMAKit
         static void Main(string[] args)
         {
             Console.WriteLine("Input the microcode file path");
-            using StreamReader reader = new(Console.ReadLine().Trim('"'));
-            List<string> codes = new();
+            using StreamReader mreader = new(Console.ReadLine().Trim('"'));
+            List<string> mcodes = new();
             string line;
-            while ((line = reader.ReadLine()) is not null)
+            while ((line = mreader.ReadLine()) is not null)
             {
                 line = line.Trim();
                 if (line != "")
                 {
-                    codes.Add(line);
+                    mcodes.Add(line);
                 }
             }
-            MicrocodeCompiler compiler = new(codes.ToArray());
+            MicrocodeCompiler compiler = new(mcodes.ToArray());
 
             (string[] asm, Dictionary<string, InstructionInf> ist) = compiler.Compile();
             foreach (string a in asm)
@@ -40,7 +40,36 @@ namespace TD_CMAKit
 
             foreach (string a in asm)
             {
-                Console.WriteLine(MicrocodeAssembler.Translate(a));
+                try
+                {
+                    Console.WriteLine(MicrocodeAssembler.Translate(a));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+
+            Console.WriteLine("Microcode loading finish");
+            Console.WriteLine("Input the assemble file path");
+
+            using StreamReader areader = new(Console.ReadLine().Trim('"'));
+
+            List<string> acodes = new();
+            while ((line = areader.ReadLine()) is not null)
+            {
+                line = line.Trim();
+                if (line != "")
+                {
+                    acodes.Add(line);
+                }
+            }
+
+            Assembler assembler = new(ist);
+            string[] hex = assembler.Assemble(acodes.ToArray());
+            foreach (string l in hex)
+            {
+                Console.WriteLine(l);
             }
         }
     }

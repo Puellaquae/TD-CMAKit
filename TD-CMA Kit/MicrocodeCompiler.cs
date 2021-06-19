@@ -9,7 +9,7 @@ namespace TD_CMAKit
 {
     public class MicrocodeCompiler
     {
-        public enum LEFT
+        private enum LEFT
         {
             PC,
             MEM,
@@ -22,7 +22,7 @@ namespace TD_CMAKit
             B
         }
 
-        public enum RIGHT
+        private enum RIGHT
         {
             PC,
             MEM,
@@ -44,10 +44,10 @@ namespace TD_CMAKit
             A_INC
         }
 
-        private string[] codes;
-        private Dictionary<int, string> asmCodes = new Dictionary<int, string>();
-        private Dictionary<string, int> labelTable = new Dictionary<string, int>();
-        private Dictionary<string, int> labelInRealTable = new Dictionary<string, int>();
+        private readonly string[] codes;
+        private readonly Dictionary<int, string> asmCodes = new();
+        private readonly Dictionary<string, int> labelTable = new();
+        private readonly Dictionary<string, int> labelInRealTable = new();
 
         public class InstructionInf
         {
@@ -57,7 +57,7 @@ namespace TD_CMAKit
 
         }
 
-        private Dictionary<string, InstructionInf> instructionSet = new Dictionary<string, InstructionInf>();
+        private Dictionary<string, InstructionInf> instructionSet = new();
         private string currentIST = null;
         private static LEFT LeftParse(string left)
         {
@@ -198,6 +198,11 @@ namespace TD_CMAKit
             return i;
         }
 
+        /// <summary>
+        /// 将微指令汇编转换为伪微指令并生成指令推测信息
+        /// </summary>
+        /// <exception cref="UnknownTokenException"></exception>
+        /// <returns></returns>
         public (string[] asmCodes, Dictionary<string, InstructionInf> instructionSetHint) Compile()
         {
             BuildLabelTable();
@@ -269,7 +274,7 @@ namespace TD_CMAKit
                     }
                     else
                     {
-                        throw new NotImplementedException();
+                        throw new UnknownTokenException($"Unknown Token {tests[0]} in {nextLine}");
                     }
 
                     break;

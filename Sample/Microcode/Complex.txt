@@ -103,8 +103,8 @@
 .BZC#:
     NOP
     <P3:0B>
-        0:BZCN
-        1:BZCY
+        00:BZCN
+        10:BZCY
 
 .BZCN:
     NOP
