@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static TD_CMAKit.MicrocodeCompiler;
 
 namespace TD_CMAKit

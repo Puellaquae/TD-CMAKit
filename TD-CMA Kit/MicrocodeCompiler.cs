@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TD_CMAKit
 {
@@ -129,11 +127,11 @@ namespace TD_CMAKit
                 }
                 if (r == RIGHT.IN)
                 {
-                    instructionSet[currentIST].Additional += "Use In Need AR 0bXX01XXXX. ";
+                    instructionSet[currentIST].Additional += "Use In Need AR 0b00XXXXXX. ";
                 }
                 if (l == LEFT.OUT)
                 {
-                    instructionSet[currentIST].Additional += "Use Out Need AR 0bXX10XXXX. ";
+                    instructionSet[currentIST].Additional += "Use Out Need AR 0b01XXXXXX. ";
                 }
             }
             return test is null ? $"{place:X2} {GetSign(l)} {GetSign(r)} {next:X2}" : $"{place:X2} {GetSign(l)} {GetSign(r)} {test} {next:X2}";

@@ -2,7 +2,6 @@ using System.Globalization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Xunit.Sdk;
 using TD_CMAKit;
-using System.Collections.Generic;
 
 namespace UnitTest
 {

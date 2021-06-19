@@ -1,0 +1,4 @@
+.START:
+    IN R1
+    OUT R1
+    JMP START
