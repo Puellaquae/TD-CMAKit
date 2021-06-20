@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http.Headers;
 using static TD_CMAKit.MicrocodeCompiler;
 
 namespace TD_CMAKit
 {
     public class Assembler
     {
-        private readonly Dictionary<string, InstructionInf> instructionInfTable;
+        private readonly Dictionary<string, List<(string opcode, int bitLen)>> instructionInfTable;
 
-        public Assembler(Dictionary<string, InstructionInf> instructionInfTable)
+        public Assembler(Dictionary<string, List<(string opcode, int bitLen)>> instructionInfTable)
         {
             this.instructionInfTable = instructionInfTable;
         }
@@ -28,13 +30,33 @@ namespace TD_CMAKit
                 {
                     throw new SyntaxException($"{ist} is not a instruction in {code}");
                 }
-                InstructionInf inf = instructionInfTable[ist];
-                bool hasRS = inf.OpCode.Contains("RS");
-                bool hasRD = inf.OpCode.Contains("RD");
-                string op = inf.OpCode;
-                int appdenBitLen = inf.BitLen - 1;
+                var inf = instructionInfTable[ist];
+                string currentOpcode;
+                int currentBitLen;
+                int startTokenIdx = 1;
+                if (inf.Count == 1)
+                {
+                    (currentOpcode, currentBitLen) = inf[0];
+                }
+                else
+                {
+                    string mode = tokens[startTokenIdx];
+                    if (!mode.StartsWith("M"))
+                    {
+                        throw new SyntaxException($"{ist} need mode select. In {code}");
+                    }
+
+                    int modei = Convert.ToInt32(mode.Trim('M'));
+                    (currentOpcode, currentBitLen) = inf[modei];
+                }
+
+                bool hasRS = currentOpcode.Contains("RS");
+                bool hasRD = currentOpcode.Contains("RD");
+                string op = currentOpcode;
+                int appdenBitLen = currentBitLen - 1;
+
                 List<string> appdenBit = new();
-                for (int i = 1; i < tokens.Length; i++)
+                for (int i = startTokenIdx; i < tokens.Length; i++)
                 {
                     string token = tokens[i].Trim();
                     if (token == "")
@@ -42,21 +64,7 @@ namespace TD_CMAKit
                         continue;
                     }
 
-                    if (hasRS)
-                    {
-                        string r = token switch
-                        {
-                            "R1" => "00",
-                            "R2" => "01",
-                            "R3" => "10",
-                            "R4" => "11",
-                            _ => throw new SyntaxException($"{token} is not a register in {code}")
-                        };
-
-                        op = op[0..4] + r + op[6..8];
-                        hasRS = false;
-                    }
-                    else if (hasRD)
+                    if (hasRD)
                     {
                         string r = token switch
                         {
@@ -70,6 +78,21 @@ namespace TD_CMAKit
                         op = op[0..6] + r;
                         hasRD = false;
                     }
+                    else if (hasRS)
+                    {
+                        string r = token switch
+                        {
+                            "R1" => "00",
+                            "R2" => "01",
+                            "R3" => "10",
+                            "R4" => "11",
+                            _ => throw new SyntaxException($"{token} is not a register in {code}")
+                        };
+
+                        op = op[0..4] + r + op[6..8];
+                        hasRS = false;
+                    }
+
                     else if (appdenBitLen > 0)
                     {
                         appdenBitLen--;

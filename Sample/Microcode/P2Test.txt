@@ -2,86 +2,10 @@
     AR=PC++
     IR=MEM
     <P1:30>
-        0:ADD
-        1:AND
-        2:IN
-        3:OUT
-        4:MOV
-        5:HLT
-        6:LDI
-        7:INC
-        8:SUB
-        9:OR
-        A:RR
-        B:Reserve
         C:Direct
         D:Indirect
         E:Index
         F:Offset
-
-.ADD#:
-    A=RD
-    B=RS
-    RD=A+B
-    END
-
-.AND#:
-    A=RD
-    B=RS
-    RD=A&B
-    END
-
-.IN#:
-    AR=PC++
-    AR=MEM
-    RD=IN
-    END
-
-.OUT#:
-    AR=PC++
-    AR=MEM
-    OUT=RS
-    END
-
-.MOV#:
-    RD=RS
-    END
-
-.HLT#:
-    NOP
-    END HLT
-
-.LDI#:
-    AR=PC++
-    RD=MEM
-    END
-
-.INC#:
-    A=RD
-    RD=A+1
-    END
-
-.SUB#:
-    A=RD
-    B=RS
-    RD=A-B
-    END
-
-.OR#:
-    A=RD
-    B=RS
-    RD=A|B
-    END
-
-.RR#:
-    A=RD
-    B=RS
-    RD=A<<<B
-    END
-
-.Reserve:
-    NOP
-    END
 
 .Direct:
     AR=PC++

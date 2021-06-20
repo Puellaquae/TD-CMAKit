@@ -1,5 +1,5 @@
-.START:
-    AR=PC
+.START!:
+    AR=PC++
     IR=MEM
     <P1:30>
         0:ZERO
@@ -15,69 +15,70 @@
         A:SET
 
 .ZERO#:
-    A=RS
+    A=RD
     B=~A
-    RS=A&B
-    GOTO START
+    RD=A&B
+    END
 
 .INC#:
-    A=RS
-    RS=A+1
-    GOTO START
+    A=RD
+    RD=A+1
+    END
 
 .IN#:
     AR=MEM
     RD=IN
-    GOTO START
+    END
 
 .SHL#:
-    A=RS
-    RS=A<<1
-    GOTO START
+    A=RD
+    RD=A<<1
+    END
 
 .OUT#:
     AR=MEM
-    OUT=RS
-    GOTO START
+    OUT=RD
+    END
 
 .JMP#:
-    AR=PC
+    AR=PC++
     PC=MEM
-    GOTO START
+    END
 
 .JA#:
-    AR=PC
+    AR=PC++
     A=MEM
     <P3:10>
-        00:JAN
-        10:JAY
+        N:JAN
+        Y:JAY
 
 .JAN:
-    GOTO START
+    NOP
+    END
 
 .JAY:
     PC=A
-    GOTO START
+    END
 
 .ADD#:
-    A=RS
-    B=RD
-    RS=A+B
-    GOTO START
+    A=RD
+    B=RS
+    RD=A+B
+    END
 
 .SUB#:
-    A=RS
-    B=RD
-    RS=A-B
-    GOTO START
+    A=RD
+    B=RS
+    RD=A-B
+    END
 
 .CMP#:
-    A=RS
-    B=RD
+    A=RD
+    B=RS
     A=A-B
-    GOTO START
+    END
 
 .SET#:
-    AR=PC
-    RS=MEM
-    GOTO START
+    AR=PC++
+    RD=MEM
+    END

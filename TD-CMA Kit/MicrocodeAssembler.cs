@@ -101,7 +101,7 @@ namespace TD_CMAKit
         {
             Instruct instruct = new();
             string[] tokens = op.Split(' ', '\t');
-            instruct.Place = int.Parse(tokens[0], NumberStyles.HexNumber);
+            instruct.Place = Convert.ToInt32(tokens[0], 16);
             bool useFieldA = false, useFieldB = false, useFieldC = false, useALU = false;
             for (int i = 1; i < tokens.Length - 1; i++)
             {
@@ -145,17 +145,13 @@ namespace TD_CMAKit
                     instruct.S = alu;
                     useALU = true;
                 }
-                else if (tokens[i] == "")
-                {
-                    continue;
-                }
-                else
+                else if(tokens[i] != "")
                 {
                     throw new UnknownTokenException($"Unknown Token {tokens[i]} in {op}");
                 }
             }
 
-            instruct.Address = int.Parse(tokens[^1], NumberStyles.HexNumber);
+            instruct.Address = Convert.ToInt32(tokens[^1], 16);
             return instruct;
         }
 

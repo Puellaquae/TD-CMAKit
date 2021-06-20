@@ -10,7 +10,8 @@ namespace TD_CMAKit
         static void Main(string[] args)
         {
             Console.WriteLine("Input the microcode file path");
-            using StreamReader mreader = new(Console.ReadLine().Trim('"'));
+            string filepath = Console.ReadLine()!.Trim('"');
+            using StreamReader mreader = new(filepath);
             List<string> mcodes = new();
             string line;
             while ((line = mreader.ReadLine()) is not null)
@@ -23,7 +24,7 @@ namespace TD_CMAKit
             }
             MicrocodeCompiler compiler = new(mcodes.ToArray());
 
-            (string[] asm, Dictionary<string, InstructionInf> ist) = compiler.Compile();
+            (string[] asm, Dictionary<string, List<(string opcode, int bitLen)>> ist, CodeNode codeGraph) = compiler.Compile();
             foreach (string a in asm)
             {
                 Console.WriteLine(a);
@@ -31,29 +32,29 @@ namespace TD_CMAKit
 
             Console.WriteLine();
 
-            foreach ((string key, InstructionInf value) in ist)
+            foreach ((string key, List<(string opcode, int bitLen)> value) in ist)
             {
-                Console.WriteLine($"{key}: {value.OpCode}, {value.BitLen} bits, {value.Additional}");
+                int idx = 0;
+                foreach (var (opcode, bitLen) in value)
+                {
+                    Console.WriteLine($"{key}: Mode {idx++} {opcode}, {bitLen} bits.");
+                }
             }
 
             Console.WriteLine();
 
             foreach (string a in asm)
             {
-                try
-                {
-                    Console.WriteLine(MicrocodeAssembler.Translate(a));
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.Message);
-                }
+                Console.WriteLine(MicrocodeAssembler.Translate(a));
             }
 
+            FlowDiagram.Draw(codeGraph, filepath + ".png");
+            
+            Console.WriteLine($"Microcode Flow Diagram Save To {filepath}.png");
             Console.WriteLine("Microcode loading finish");
             Console.WriteLine("Input the assemble file path");
 
-            using StreamReader areader = new(Console.ReadLine().Trim('"'));
+            using StreamReader areader = new(Console.ReadLine()!.Trim('"'));
 
             List<string> acodes = new();
             while ((line = areader.ReadLine()) is not null)

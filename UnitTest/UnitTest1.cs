@@ -39,14 +39,11 @@ namespace UnitTest
         {
             string[] tokens = code.Split(' ');
             string[] assign = tokens[1].Split('=');
-            MicrocodeCompiler compiler = new MicrocodeCompiler(new string[1]);
-            int bitlen = 0;
-            return MicrocodeAssembler.Translate(compiler.TransAssign(
+            return MicrocodeAssembler.Translate(MicrocodeCompiler.TransAssign(
                 int.Parse(tokens[0], NumberStyles.HexNumber), 
                 assign[0],
                 assign[1],
-                int.Parse(tokens[2], NumberStyles.HexNumber),
-                ref bitlen)).ToString();
+                int.Parse(tokens[2], NumberStyles.HexNumber))).ToString();
         }
         [TestMethod]
         public void Assign()
