@@ -59,6 +59,9 @@ namespace TD_CMAKit
 
             internal int PlaceInReal { get; set; }
 
+            /// <summary>
+            /// 此 Label 包含 ! # 等标记
+            /// </summary>
             internal string StartOfLabel { get; set; }
 
             /// <summary>
@@ -72,6 +75,8 @@ namespace TD_CMAKit
             /// 只由 CompileTest 改写 
             /// </summary>
             internal int HasTest { get; set; }
+
+            internal int FromTest { get; set; }
 
             internal string Code { get; set; }
 
@@ -377,7 +382,7 @@ namespace TD_CMAKit
             }
 
             compiledLabel.Add(label);
-            codeNode.StartOfLabel = label;
+            codeNode.StartOfLabel = GetFullLabel(label);
 
             // 如果进入一条指令，先标记第一个 Node 
             if (IsInstruct(label))
@@ -471,6 +476,11 @@ namespace TD_CMAKit
             }
         }
 
+        private string GetFullLabel(string label)
+        {
+            return codes[labelTable[label] - 1].Trim('.', ':');
+        }
+
         private bool IsInstruct(string label)
         {
             return codes[labelTable[label] - 1].Trim(',', ':').EndsWith('#');
@@ -555,6 +565,7 @@ namespace TD_CMAKit
                 CodeNode branchNode = new()
                 {
                     Opcode = CalcCertainOpcode(offset, 4),
+                    FromTest = 4
                 };
                 codeNode.NextNodes.Add(branchNode);
                 codeNode.HasTest = 4;
@@ -585,6 +596,7 @@ namespace TD_CMAKit
                 CodeNode branchNode = new()
                 {
                     Opcode = CalcCertainOpcode(offset, 3),
+                    FromTest = 3
                 };
                 codeNode.NextNodes.Add(branchNode);
                 codeNode.HasTest = 3;
@@ -616,6 +628,7 @@ namespace TD_CMAKit
                 CodeNode branchNode = new()
                 {
                     Opcode = CalcCertainOpcode(offset, 2),
+                    FromTest = 2
                 };
                 codeNode.NextNodes.Add(branchNode);
                 codeNode.HasTest = 2;
@@ -647,6 +660,7 @@ namespace TD_CMAKit
                 CodeNode branchNode = new()
                 {
                     Opcode = CalcCertainOpcode(offset, 1),
+                    FromTest = 1
                 };
                 codeNode.NextNodes.Add(branchNode);
                 codeNode.HasTest = 1;
