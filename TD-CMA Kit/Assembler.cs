@@ -46,6 +46,7 @@ namespace TD_CMAKit
                         throw new SyntaxException($"{ist} need mode select. In {code}");
                     }
 
+                    startTokenIdx++;
                     int modei = Convert.ToInt32(mode.Trim('M'));
                     (currentOpcode, currentBitLen) = inf[modei];
                 }
@@ -111,6 +112,7 @@ namespace TD_CMAKit
                         throw new SyntaxException($"{token} is not acceptable for {ist} in {code}");
                     }
                 }
+
                 hex.Add(Convert.ToInt32(op.Replace('X', '0'), 2).ToString("X2"));
                 hex.AddRange(appdenBit);
             }
@@ -132,16 +134,23 @@ namespace TD_CMAKit
         /// 将汇编转换为二进制指令
         /// </summary>
         /// <param name="codes"></param>
+        /// <param name="raw2HexMap"></param>
         /// <exception cref="SyntaxException"></exception>
         /// <returns></returns>
-        public string[] Assemble(string[] codes)
+        public string[] Assemble(string[] codes, Dictionary<int, int> raw2HexMap = null)
         {
             List<string> hex = new();
             Dictionary<string, int> labelRealIndexTable = new();
             List<(int, string)> labelSlots = new();
 
-            foreach (string code in codes)
+            for (var index = 0; index < codes.Length; index++)
             {
+                string code = codes[index];
+                if (raw2HexMap is not null)
+                {
+                    raw2HexMap[hex.Count] = index;
+                }
+
                 AssembleInstruct(code, hex, labelRealIndexTable, labelSlots);
             }
 

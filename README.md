@@ -9,6 +9,7 @@
 - 微指令的汇编器，并推测指令格式信息
 - 根据微指令生成流程图
 - 根据推测信息进行汇编
+- 可生成二进制源码映射表
 
 ## 例子
 
@@ -79,27 +80,27 @@ END 与 GOTO 区别在于绘制流程图时 END 会中止处理后继，请合�
 ### 二进制
 
 ```
-$M 00 006D41
-$M 01 107070
-$M 02 002603
-$M 03 04B200
-$M 04 183000
-$M 05 280400
-$M 06 105140
-$M 30 001402
-$M 32 106004
-$M 34 106005
-$M 35 000035
-$M 3C 006D46
+$M 00 006D41 ; AR=PC++
+$M 01 107070 ; IR=MEM
+$M 02 002603 ; B=RD
+$M 03 04B200 ; RD=A+B
+$M 04 183000 ; RD=IN
+$M 05 280400 ; OUT=RS
+$M 06 105140 ; PC=MEM
+$M 30 001402 ; A=RS
+$M 32 106004 ; AR=MEM
+$M 34 106005 ; AR=MEM
+$M 35 000035 ; NOP
+$M 3C 006D46 ; AR=PC++
 ```
 
 ### 根据微指令给出的指令提示
 ```
-ADD: Mode 0 0000RSRD, 1 bits.
-IN: Mode 0 0010XXRD, 1 bits.
-OUT: Mode 0 0100RSXX, 1 bits.
-HLT: Mode 0 0101XXXX, 1 bits.
-JMP: Mode 0 11XX00XX, 2 bits.
+ADD: Mode 0 0000RSRD, 1 bytes.
+IN: Mode 0 0010XXRD, 1 bytes.
+OUT: Mode 0 0100RSXX, 1 bytes.
+HLT: Mode 0 0101XXXX, 1 bytes.
+JMP: Mode 0 11XX00XX, 2 bytes.
 ```
 
 ### 微指令流程图
@@ -122,8 +123,8 @@ JMP: Mode 0 11XX00XX, 2 bits.
 ### 二进制
 
 ```
-$P 00 20
-$P 01 40
-$P 02 C0
+$P 00 21 ; IN R1
+$P 01 44 ; OUT R1
+$P 02 C0 ; JMP START
 $P 03 00
 ```

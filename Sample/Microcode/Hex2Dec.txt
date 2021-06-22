@@ -1,14 +1,15 @@
 .START!:
     AR=PC++
     IR=MEM
-    <P1:30>
-        0:DIV
+    <P1:10>
+        1:DIV
         2:IN
         3:SHL
         4:OUT
         5:JMP
         7:ADD
-        A:SET
+        8:SET
+        9:AND
 
 .DIV#:
     B=~A
@@ -16,22 +17,35 @@
     GOTO DIVTest
 
 .DIVTest:
+    A=RS
+    B=A-1
+    A=RD
+    A=A-B
+    <P3:2A>
+        Y:DIVFin
+        N:DIVNext
+
+.DIVFin:
+    NOP
+    END
+
+.DIVNext:
     A=RD
     B=RS
-    A=A-B
-    <P3:0A>
-        N:DIVSub
-        Y:DIVFin
-
-.DIVSub:
-    A=RD
     RD=A-B
     A=SP
     SP=A+1
     END DIVTest
 
-.DIVFin:
-    NOP
+.ZERO#:
+    A=RD
+    B=~A
+    RD=A&B
+    END
+
+.INC#:
+    A=RD
+    RD=A+1
     END
 
 .IN#:
@@ -54,7 +68,6 @@
     PC=MEM
     END
 
-
 .ADD#:
     A=RD
     B=RS
@@ -65,3 +78,10 @@
     AR=PC++
     RD=MEM
     END
+
+.AND#:
+    AR=PC++
+    B=MEM
+    A=RD
+    RD=A&B
+    END 

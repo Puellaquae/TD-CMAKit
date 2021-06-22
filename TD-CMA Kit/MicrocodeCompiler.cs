@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection.Emit;
 using System.Text.Encodings.Web;
 
@@ -51,6 +52,8 @@ namespace TD_CMAKit
         private readonly Dictionary<int, string> asmCodes = new();
         private readonly Dictionary<string, int> labelTable = new();
         private readonly Dictionary<string, int> labelInRealTable = new();
+        public Dictionary<int, int> RealToRawMap { get; } = new();
+
         private readonly HashSet<string> compiledLabel = new();
         private string nextInstructionLabel;
 
@@ -88,8 +91,6 @@ namespace TD_CMAKit
         }
 
         private readonly Dictionary<string, CodeNode> labelInCodeGraph = new();
-
-        private readonly Dictionary<string, List<(string opcode, int bitLen)>> instructionSet = new();
 
         private static LEFT LeftParse(string left)
         {
@@ -201,24 +202,30 @@ namespace TD_CMAKit
         /// <exception cref="UnknownTokenException"></exception>
         /// <exception cref="SyntaxException"></exception>
         /// <returns></returns>
-        public (string[] asmCodes, Dictionary<string, List<(string opcode, int bitLen)>> instructionSetHint, CodeNode codeGraph) Compile()
+        public Dictionary<int, string> Compile()
         {
             BuildLabelTable();
             ReservePlaceForTestBranch();
 
-            CodeNode startNode = new();
-            CompileLabel("START", GetNextAvailableIndex(), startNode);
-            BuildInstructionInf(startNode);
+            CompileLabel("START", GetNextAvailableIndex(), CodeNodeGraph);
+            BuildInstructionInf(CodeNodeGraph);
 
-            string[] asm = (from kp in asmCodes where kp.Value != "Reserve" orderby kp.Key select kp.Value).ToArray();
-
-            foreach (var (key, value) in instructionSet)
+            foreach (int k in from p in asmCodes where p.Value == "Reserve" select p.Key)
             {
-                instructionSet[key] = (from mode in value orderby mode.opcode select mode).ToList();
+                asmCodes.Remove(k);
             }
 
-            return (asm, instructionSet, startNode);
+            foreach (var (key, value) in InstructionSetHint)
+            {
+                InstructionSetHint[key] = (from mode in value orderby mode.opcode select mode).ToList();
+            }
+
+            return asmCodes;
         }
+
+        public CodeNode CodeNodeGraph { get; } = new();
+
+        public Dictionary<string, List<(string opcode, int bitLen)>> InstructionSetHint { get; } = new();
 
         private void BuildInstructionInf(CodeNode codeNode)
         {
@@ -235,13 +242,13 @@ namespace TD_CMAKit
             {
                 foreach (string instruction in codeNode.ForInstruction)
                 {
-                    if (!instructionSet.ContainsKey(instruction))
+                    if (!InstructionSetHint.ContainsKey(instruction))
                     {
-                        instructionSet.Add(instruction, new List<(string opcode, int bitLen)>());
+                        InstructionSetHint.Add(instruction, new List<(string opcode, int bitLen)>());
                     }
 
-                    instructionSet[instruction].Add((opcode, bitLen));
-                    instructionSet[instruction] = instructionSet[instruction].Distinct().ToList();
+                    InstructionSetHint[instruction].Add((opcode, bitLen));
+                    InstructionSetHint[instruction] = InstructionSetHint[instruction].Distinct().ToList();
                 }
                 return;
             }
@@ -674,6 +681,7 @@ namespace TD_CMAKit
 
         private void CompileLine(int lineIdx, int placeHint, int nextHint, CodeNode codeNode, string test = null)
         {
+            RealToRawMap[placeHint] = lineIdx;
             string code = codes[lineIdx];
             codeNode.Code = code;
             codeNode.PlaceInReal = placeHint;
@@ -694,6 +702,7 @@ namespace TD_CMAKit
 
         private int CompileLine(int lineIdx, int placeHint, CodeNode codeNode)
         {
+            RealToRawMap[placeHint] = lineIdx;
             asmCodes[placeHint] = "Placeholder";
             int next = GetNextAvailableIndex();
 
@@ -744,8 +753,9 @@ namespace TD_CMAKit
 
         private void ReservePlaceForTestBranch()
         {
-            foreach (string code in codes)
+            for (var idx = 0; idx < codes.Length; idx++)
             {
+                string code = codes[idx];
                 if (code.StartsWith("<P"))
                 {
                     string[] tests = code.Trim('<', '>').Split(':');
@@ -753,19 +763,48 @@ namespace TD_CMAKit
                     if (tests[0] == "P1")
                     {
                         basePlace &= 0b110000;
-                        for (int o = 0; o < 0b1111; o++)
+                        for (idx++; idx < codes.Length; idx++)
                         {
-                            ReservePlace(basePlace + o);
+                            string bcode = codes[idx];
+                            string[] tokens = bcode.Trim(':').Split(':');
+                            if (tokens.Length != 2)
+                            {
+                                break;
+                            }
+
+                            string branch = tokens[0].Trim();
+                            int offset = Convert.ToInt32(branch, 16);
+
+                            if (offset != (offset & 0b1111))
+                            {
+                                throw new SyntaxException($"{branch} out of P1 branch range, which is 0 to F. In {bcode}");
+                            }
+
+                            ReservePlace(basePlace + offset);
                         }
                     }
                     else if (tests[0] == "P2")
                     {
                         basePlace &= 0b111100;
-                        ReservePlace(basePlace + 0);
-                        ReservePlace(basePlace + 1);
-                        ReservePlace(basePlace + 2);
-                        ReservePlace(basePlace + 3);
+                        for (idx++; idx < codes.Length; idx++)
+                        {
+                            string bcode = codes[idx];
+                            string[] tokens = bcode.Trim(':').Split(':');
+                            if (tokens.Length != 2)
+                            {
+                                break;
+                            }
 
+                            string branch = tokens[0].Trim();
+                            int offset = Convert.ToInt32(branch, 16);
+
+                            if (offset != (offset & 0b11))
+                            {
+                                throw new SyntaxException($"{branch} out of P2 branch range, which is 0 to 3. In {bcode}");
+                            }
+
+                            ReservePlace(basePlace + offset);
+                        }
                     }
                     else if (tests[0] == "P3")
                     {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using static TD_CMAKit.MicrocodeCompiler;
 
 namespace TD_CMAKit
@@ -24,8 +25,11 @@ namespace TD_CMAKit
             }
             MicrocodeCompiler compiler = new(mcodes.ToArray());
 
-            (string[] asm, Dictionary<string, List<(string opcode, int bitLen)>> ist, CodeNode codeGraph) = compiler.Compile();
-            foreach (string a in asm)
+            Dictionary<int, string> asm = compiler.Compile();
+            Dictionary<string, List<(string opcode, int bitLen)>> ist = compiler.InstructionSetHint;
+            CodeNode codeGraph = compiler.CodeNodeGraph;
+            Dictionary<int, int> realToRaw = compiler.RealToRawMap;
+            foreach ((int _, string a) in from p in asm orderby p.Key select p)
             {
                 Console.WriteLine(a);
             }
@@ -37,18 +41,16 @@ namespace TD_CMAKit
                 int idx = 0;
                 foreach ((string opcode, int bitLen) in value)
                 {
-                    Console.WriteLine($"{key}: Mode {idx++} {opcode}, {bitLen} bits.");
+                    Console.WriteLine($"{key}: Mode {idx++} {opcode}, {bitLen} bytes.");
                 }
             }
 
             Console.WriteLine();
 
-            List<string> mhex = new();
-            foreach (string a in asm)
+            foreach ((int i, string a) in from p in asm orderby p.Key select p)
             {
                 string h = MicrocodeAssembler.Translate(a).ToString();
-                Console.WriteLine(h);
-                mhex.Add(h);
+                Console.WriteLine($"{h} ; {mcodes[realToRaw[i]]}");
             }
 
             FlowDiagram.Draw(codeGraph, filepath + ".png");
@@ -70,10 +72,12 @@ namespace TD_CMAKit
             }
 
             Assembler assembler = new(ist);
-            string[] hex = assembler.Assemble(acodes.ToArray());
-            foreach (string l in hex)
+            Dictionary<int, int> hex2AsmMap = new();
+            string[] hex = assembler.Assemble(acodes.ToArray(), hex2AsmMap);
+            for (var index = 0; index < hex.Length; index++)
             {
-                Console.WriteLine(l);
+                string l = hex[index];
+                Console.WriteLine(hex2AsmMap.ContainsKey(index) ? $"{l} ; {acodes[hex2AsmMap[index]]}" : l);
             }
         }
     }
