@@ -2,27 +2,36 @@
     AR=PC++
     IR=MEM
     <P1:30>
-        0:ZERO
-        1:INC
+        0:DIV
         2:IN
         3:SHL
         4:OUT
         5:JMP
-        6:JA
         7:ADD
-        8:SUB
-        9:CMP
         A:SET
 
-.ZERO#:
-    A=RD
+.DIV#:
     B=~A
-    RD=A&B
-    END
+    SP=A&B
+    GOTO DIVTest
 
-.INC#:
+.DIVTest:
     A=RD
-    RD=A+1
+    B=RS
+    A=A-B
+    <P3:0A>
+        N:DIVSub
+        Y:DIVFin
+
+.DIVSub:
+    A=RD
+    RD=A-B
+    A=SP
+    SP=A+1
+    END DIVTest
+
+.DIVFin:
+    NOP
     END
 
 .IN#:
@@ -45,37 +54,11 @@
     PC=MEM
     END
 
-.JA#:
-    AR=PC++
-    A=MEM
-    <P3:10>
-        N:JAN
-        Y:JAY
-
-.JAN:
-    NOP
-    END
-
-.JAY:
-    PC=A
-    END
 
 .ADD#:
     A=RD
     B=RS
     RD=A+B
-    END
-
-.SUB#:
-    A=RD
-    B=RS
-    RD=A-B
-    END
-
-.CMP#:
-    A=RD
-    B=RS
-    A=A-B
     END
 
 .SET#:

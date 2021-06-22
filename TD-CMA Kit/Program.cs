@@ -35,7 +35,7 @@ namespace TD_CMAKit
             foreach ((string key, List<(string opcode, int bitLen)> value) in ist)
             {
                 int idx = 0;
-                foreach (var (opcode, bitLen) in value)
+                foreach ((string opcode, int bitLen) in value)
                 {
                     Console.WriteLine($"{key}: Mode {idx++} {opcode}, {bitLen} bits.");
                 }
@@ -43,13 +43,16 @@ namespace TD_CMAKit
 
             Console.WriteLine();
 
+            List<string> mhex = new();
             foreach (string a in asm)
             {
-                Console.WriteLine(MicrocodeAssembler.Translate(a));
+                string h = MicrocodeAssembler.Translate(a).ToString();
+                Console.WriteLine(h);
+                mhex.Add(h);
             }
 
             FlowDiagram.Draw(codeGraph, filepath + ".png");
-            
+
             Console.WriteLine($"Microcode Flow Diagram Save To {filepath}.png");
             Console.WriteLine("Microcode loading finish");
             Console.WriteLine("Input the assemble file path");

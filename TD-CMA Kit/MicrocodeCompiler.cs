@@ -432,7 +432,7 @@ namespace TD_CMAKit
                     if (!labelInRealTable.ContainsKey(nextLabel))
                     {
                         // 如果要跳转的块还未编译，预留位置先去编译
-                        asmCodes[place] = "Reserve";
+                        ReservePlace(place);
                         int labelPlace = GetNextAvailableIndex();
                         CompileLabel(nextLabel, labelPlace, new CodeNode());
                     }
@@ -452,13 +452,17 @@ namespace TD_CMAKit
                     {
                         nextLabel = nextInstructionLabel;
                     }
-                    else if (tokens[1].Trim() == label)
-                    {
-                        nextLabel = label;
-                    }
                     else
                     {
-                        throw new SyntaxException($"END only can goto Next instruction label or Self label. In {code}");
+                        nextLabel = tokens[1].Trim();
+                    }
+
+                    if (!labelInRealTable.ContainsKey(nextLabel))
+                    {
+                        // 如果要跳转的块还未编译，预留位置先去编译
+                        ReservePlace(place);
+                        int labelPlace = GetNextAvailableIndex();
+                        CompileLabel(nextLabel, labelPlace, new CodeNode());
                     }
 
                     int next = labelInRealTable[nextLabel];
@@ -723,6 +727,11 @@ namespace TD_CMAKit
                         nextInstructionLabel = label;
                     }
 
+                    if (labelTable.ContainsKey(label))
+                    {
+                        throw new SyntaxException($"Label {label} has been defined more than once.");
+                    }
+
                     labelTable[label] = i + 1;
                 }
             }
@@ -735,9 +744,8 @@ namespace TD_CMAKit
 
         private void ReservePlaceForTestBranch()
         {
-            for (int i = 0; i < codes.Length; i++)
+            foreach (string code in codes)
             {
-                string code = codes[i];
                 if (code.StartsWith("<P"))
                 {
                     string[] tests = code.Trim('<', '>').Split(':');
@@ -747,32 +755,42 @@ namespace TD_CMAKit
                         basePlace &= 0b110000;
                         for (int o = 0; o < 0b1111; o++)
                         {
-                            asmCodes[basePlace + o] = "Reserve";
+                            ReservePlace(basePlace + o);
                         }
                     }
                     else if (tests[0] == "P2")
                     {
                         basePlace &= 0b111100;
-                        asmCodes[basePlace + 0] = "Reserve";
-                        asmCodes[basePlace + 1] = "Reserve";
-                        asmCodes[basePlace + 2] = "Reserve";
-                        asmCodes[basePlace + 3] = "Reserve";
+                        ReservePlace(basePlace + 0);
+                        ReservePlace(basePlace + 1);
+                        ReservePlace(basePlace + 2);
+                        ReservePlace(basePlace + 3);
 
                     }
                     else if (tests[0] == "P3")
                     {
                         basePlace &= 0b101111;
-                        asmCodes[basePlace + 0] = "Reserve";
-                        asmCodes[basePlace + 0b10000] = "Reserve";
+                        ReservePlace(basePlace + 0);
+                        ReservePlace(basePlace + 0b10000);
                     }
                     else if (tests[0] == "P4")
                     {
                         basePlace &= 0b011111;
-                        asmCodes[basePlace + 0] = "Reserve";
-                        asmCodes[basePlace + 0b100000] = "Reserve";
+                        ReservePlace(basePlace + 0);
+                        ReservePlace(basePlace + 0b100000);
                     }
                 }
             }
+        }
+
+        private void ReservePlace(int place)
+        {
+            if (asmCodes.ContainsKey(place))
+            {
+                throw new SyntaxException($"Place {place} conflict");
+            }
+
+            asmCodes[place] = "Reserve";
         }
     }
 }

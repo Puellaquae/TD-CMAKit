@@ -68,10 +68,10 @@ namespace TD_CMAKit
                     {
                         string r = token switch
                         {
-                            "R1" => "00",
-                            "R2" => "01",
-                            "R3" => "10",
-                            "R4" => "11",
+                            "R0" => "00",
+                            "R1" => "01",
+                            "R2" => "10",
+                            "R3" => "11",
                             _ => throw new SyntaxException($"{token} is not a register in {code}")
                         };
 
@@ -82,10 +82,10 @@ namespace TD_CMAKit
                     {
                         string r = token switch
                         {
-                            "R1" => "00",
-                            "R2" => "01",
-                            "R3" => "10",
-                            "R4" => "11",
+                            "R0" => "00",
+                            "R1" => "01",
+                            "R2" => "10",
+                            "R3" => "11",
                             _ => throw new SyntaxException($"{token} is not a register in {code}")
                         };
 
