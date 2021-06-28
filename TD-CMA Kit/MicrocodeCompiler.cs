@@ -208,6 +208,7 @@ namespace TD_CMAKit
             ReservePlaceForTestBranch();
 
             CompileLabel("START", GetNextAvailableIndex(), CodeNodeGraph);
+            BreakCycle(CodeNodeGraph);
             BuildInstructionInf(CodeNodeGraph);
 
             foreach (int k in from p in asmCodes where p.Value == "Reserve" select p.Key)
@@ -221,6 +222,29 @@ namespace TD_CMAKit
             }
 
             return asmCodes;
+        }
+
+        private static void BreakCycle(CodeNode codeNode)
+        {
+            BreakCycle(codeNode, new HashSet<CodeNode>());
+        }
+
+        private static void BreakCycle(CodeNode codeNode, HashSet<CodeNode> vis)
+        {
+            vis.Add(codeNode);
+            if (codeNode.NextNodes.Count == 1 && vis.Contains(codeNode.NextNodes[0]))
+            {
+                codeNode.NotProcessNext = true;
+            }
+            else
+            {
+                foreach (CodeNode nextNode in codeNode.NextNodes)
+                {
+                    BreakCycle(nextNode, vis);
+                }
+            }
+
+            vis.Remove(codeNode);
         }
 
         public CodeNode CodeNodeGraph { get; } = new();
@@ -374,7 +398,7 @@ namespace TD_CMAKit
             }
         }
 
-        private void CompileLabel(string label, int place, CodeNode codeNode)
+        private void CompileLabel(string label, int place, CodeNode codeNode, bool forceCompileByTest = false)
         {
             if (!labelTable.ContainsKey(label))
             {
@@ -385,6 +409,11 @@ namespace TD_CMAKit
 
             if (compiledLabel.Contains(label))
             {
+                if (forceCompileByTest)
+                {
+                    throw new SyntaxException(
+                        $"{label} has been placed in {labelInRealTable[label]}, while test requires placed in {place}");
+                }
                 return;
             }
 
@@ -453,28 +482,10 @@ namespace TD_CMAKit
 
                 if (nextLine.StartsWith("END"))
                 {
-                    string[] tokens = nextLine.Split(' ');
-                    string nextLabel;
-                    if (tokens.Length == 1)
-                    {
-                        nextLabel = nextInstructionLabel;
-                    }
-                    else
-                    {
-                        nextLabel = tokens[1].Trim();
-                    }
-
-                    if (!labelInRealTable.ContainsKey(nextLabel))
-                    {
-                        // 如果要跳转的块还未编译，预留位置先去编译
-                        ReservePlace(place);
-                        int labelPlace = GetNextAvailableIndex();
-                        CompileLabel(nextLabel, labelPlace, new CodeNode());
-                    }
+                    string nextLabel = nextInstructionLabel;
 
                     int next = labelInRealTable[nextLabel];
                     codeNode.NextNodes.Add(labelInCodeGraph[nextLabel]);
-                    codeNode.NotProcessNext = true;
                     CompileLine(idx, place, next, codeNode);
 
                     break;
@@ -580,7 +591,7 @@ namespace TD_CMAKit
                 };
                 codeNode.NextNodes.Add(branchNode);
                 codeNode.HasTest = 4;
-                CompileLabel(label, basePlace + offset, branchNode);
+                CompileLabel(label, basePlace + offset, branchNode, true);
             }
         }
 
@@ -611,7 +622,7 @@ namespace TD_CMAKit
                 };
                 codeNode.NextNodes.Add(branchNode);
                 codeNode.HasTest = 3;
-                CompileLabel(label, basePlace + offset, branchNode);
+                CompileLabel(label, basePlace + offset, branchNode, true);
             }
         }
 
@@ -643,7 +654,7 @@ namespace TD_CMAKit
                 };
                 codeNode.NextNodes.Add(branchNode);
                 codeNode.HasTest = 2;
-                CompileLabel(label, basePlace + offset, branchNode);
+                CompileLabel(label, basePlace + offset, branchNode, true);
             }
         }
 
@@ -675,7 +686,7 @@ namespace TD_CMAKit
                 };
                 codeNode.NextNodes.Add(branchNode);
                 codeNode.HasTest = 1;
-                CompileLabel(label, basePlace + offset, branchNode);
+                CompileLabel(label, basePlace + offset, branchNode, true);
             }
         }
 

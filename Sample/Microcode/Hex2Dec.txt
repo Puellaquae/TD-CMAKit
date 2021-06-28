@@ -2,14 +2,29 @@
     AR=PC++
     IR=MEM
     <P1:10>
+        0:OR
         1:DIV
         2:IN
-        3:SHL
+        3:MOV
         4:OUT
-        5:JMP
+        5:SUB
+        6:CJA
         7:ADD
         8:SET
         9:AND
+        A:SHL
+        B:SHR
+        C:Direct
+        D:Index
+        E:Immediate
+        F:Register
+
+.OR#:
+    AR=PC++
+    B=MEM
+    A=RD
+    RD=A|B
+    END
 
 .DIV#:
     B=~A
@@ -35,7 +50,7 @@
     RD=A-B
     A=SP
     SP=A+1
-    END DIVTest
+    GOTO DIVTest
 
 .ZERO#:
     A=RD
@@ -53,19 +68,15 @@
     RD=IN
     END
 
-.SHL#:
-    A=RD
-    RD=A<<1
-    END
-
 .OUT#:
     AR=MEM
     OUT=RD
     END
-
-.JMP#:
-    AR=PC++
-    PC=MEM
+    
+.SUB#:
+    A=RD
+    B=RS
+    RD=A-B
     END
 
 .ADD#:
@@ -85,3 +96,79 @@
     A=RD
     RD=A&B
     END 
+
+.CJA#:
+    A=RD
+    B=RS
+    A=A-B
+    <P3:2E>
+        Y:CJA_BE
+        N:CJA_A    
+
+.CJA_BE:
+    AR=PC++
+    AR=PC++
+    PC=MEM
+    END
+
+.CJA_A:
+    AR=PC++
+    PC=MEM
+    AR=PC++  
+    END   
+
+.Direct:
+    AR=PC++
+    A=MEM
+    AR=MEM
+    GOTO P2Branch1
+
+.Index:
+    AR=PC++
+    A=MEM
+    B=RI
+    AR=MEM
+    A=A+B
+    GOTO P2Branch1
+
+.P2Branch1:
+    NOP
+    <P2:0C>
+        0:LAD
+        1:STA   
+
+.LAD#:
+    RD=MEM
+    END
+
+.STA#:
+    MEM=RD
+    END
+
+.Immediate:
+    AR=PC++
+    A=MEM
+    GOTO JMP
+
+.Register:
+    A=RD
+    GOTO JMP
+
+.JMP#:
+    PC=A
+    END
+
+.MOV#:
+    A=RS
+    RD=A
+    END
+
+.SHL#:
+    A=RD
+    RD=A<<1
+    END
+
+.SHR#:
+    A=RD
+    RD=A>>1
+    END

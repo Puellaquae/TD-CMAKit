@@ -49,7 +49,7 @@
 
 .HLT#:
     NOP
-    END HLT
+    GOTO HLT
 
 .LDI#:
     AR=PC++
