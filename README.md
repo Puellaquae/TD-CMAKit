@@ -10,6 +10,7 @@
 - 根据微指令生成流程图
 - 根据推测信息进行汇编
 - 可生成二进制源码映射表
+- 自动微指令寄存器地址分配
 
 ## 例子
 
@@ -19,7 +20,7 @@
 .START!:
 	AR=PC++
 	IR=MEM
-	<P1:30>
+	<P1>
 		0:ADD
 		2:IN
 		4:OUT
@@ -58,38 +59,40 @@ START 是程序处理的入口
 
 需要在标号后添加 # 指示程序这是一条指令
 
+测试分支的位置可以自行指定也可由程序自动分配，若指定则可以是 `<P1:30>`
+
 ### 伪微指令
 
 ```
 00 LDAR PC_B LDPC 01
-01 LDIR RD P1 30
+01 LDIR RD P1 10
 02 LDB RD_B 03
 03 LDRi ADD ALU_B 00
 04 LDRi RD IOM 00
 05 WR IOM RS_B 00
 06 LOAD LDPC RD 00
-30 LDA RS_B 02
-32 LDAR RD 04
-34 LDAR RD 05
-35 NOP 35
-3C LDAR PC_B LDPC 06
+10 LDA RS_B 02
+12 LDAR RD 04
+14 LDAR RD 05
+15 NOP 15
+1C LDAR PC_B LDPC 06
 ```
 
 ### 二进制
 
 ```
 $M 00 006D41 ; AR=PC++
-$M 01 107070 ; IR=MEM
+$M 01 107050 ; IR=MEM
 $M 02 002603 ; B=RD
 $M 03 04B200 ; RD=A+B
 $M 04 183000 ; RD=IN
 $M 05 280400 ; OUT=RS
 $M 06 105140 ; PC=MEM
-$M 30 001402 ; A=RS
-$M 32 106004 ; AR=MEM
-$M 34 106005 ; AR=MEM
-$M 35 000035 ; NOP
-$M 3C 006D46 ; AR=PC++
+$M 10 001402 ; A=RS
+$M 12 106004 ; AR=MEM
+$M 14 106005 ; AR=MEM
+$M 15 000015 ; NOP
+$M 1C 006D46 ; AR=PC++
 ```
 
 ### 根据微指令给出的指令提示

@@ -10,6 +10,7 @@ namespace TD_CMAKit
 {
     public class MicrocodeCompiler
     {
+        private readonly string RESERVE = "Reserve";
         private enum LEFT
         {
             PC,
@@ -207,11 +208,13 @@ namespace TD_CMAKit
             BuildLabelTable();
             ReservePlaceForTestBranch();
 
-            CompileLabel("START", GetNextAvailableIndex(), CodeNodeGraph);
+            ReservePlace(0);
+            CompileLabel("START", 0, CodeNodeGraph);
+
             BreakCycle(CodeNodeGraph);
             BuildInstructionInf(CodeNodeGraph);
 
-            foreach (int k in from p in asmCodes where p.Value == "Reserve" select p.Key)
+            foreach (int k in from p in asmCodes where p.Value == RESERVE select p.Key)
             {
                 asmCodes.Remove(k);
             }
@@ -468,7 +471,7 @@ namespace TD_CMAKit
                     if (!labelInRealTable.ContainsKey(nextLabel))
                     {
                         // 如果要跳转的块还未编译，预留位置先去编译
-                        ReservePlace(place);
+                        ReservePlace(place, true);
                         int labelPlace = GetNextAvailableIndex();
                         CompileLabel(nextLabel, labelPlace, new CodeNode());
                     }
@@ -483,6 +486,14 @@ namespace TD_CMAKit
                 if (nextLine.StartsWith("END"))
                 {
                     string nextLabel = nextInstructionLabel;
+
+                    if (!labelInRealTable.ContainsKey(nextLabel))
+                    {
+                        // 如果要跳转的块还未编译，预留位置先去编译
+                        ReservePlace(place, true);
+                        int labelPlace = GetNextAvailableIndex();
+                        CompileLabel(nextLabel, labelPlace, new CodeNode());
+                    }
 
                     int next = labelInRealTable[nextLabel];
                     codeNode.NextNodes.Add(labelInCodeGraph[nextLabel]);
@@ -770,7 +781,17 @@ namespace TD_CMAKit
                 if (code.StartsWith("<P"))
                 {
                     string[] tests = code.Trim('<', '>').Split(':');
-                    int basePlace = Convert.ToInt32(tests[1], 16);
+                    int basePlace;
+                    if (tests.Length == 1)
+                    {
+                        basePlace = AllocTestPlace(tests[0]);
+                        codes[idx] = $"<{tests[0]}:{basePlace:X2}>";
+                    }
+                    else
+                    {
+                        basePlace = Convert.ToInt32(tests[1], 16);
+                    }
+
                     if (tests[0] == "P1")
                     {
                         basePlace &= 0b110000;
@@ -833,14 +854,72 @@ namespace TD_CMAKit
             }
         }
 
-        private void ReservePlace(int place)
+        private int AllocTestPlace(string test)
+        {
+            if (test == "P1")
+            {
+                for (int p = 0x10; p < 0x40; p += 0x10)
+                {
+                    if (!asmCodes.ContainsKey(p))
+                    {
+                        return p;
+                    }
+                }
+            }
+            else if (test == "P2")
+            {
+                for (int p = 0x04; p < 0x40; p += 0x04)
+                {
+                    if (!asmCodes.ContainsKey(p))
+                    {
+                        return p;
+                    }
+                }
+            }
+            else if (test == "P3")
+            {
+                for (int p = 0x01; p < 0x10; p++)
+                {
+                    if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x10))
+                    {
+                        return p;
+                    }
+                }
+
+                for (int p = 0x20; p < 0x30; p++)
+                {
+                    if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x10))
+                    {
+                        return p;
+                    }
+                }
+            }
+            else if (test == "P4")
+            {
+                for (int p = 0x01; p < 0x20; p++)
+                {
+                    if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x20))
+                    {
+                        return p;
+                    }
+                }
+            }
+
+            throw new SyntaxException($"No more place for test {test}");
+        }
+
+        private void ReservePlace(int place, bool maybeReserveAgain = false)
         {
             if (asmCodes.ContainsKey(place))
             {
-                throw new SyntaxException($"Place {place} conflict");
+                if (maybeReserveAgain && asmCodes[place] == RESERVE)
+                {
+                    return;
+                }
+                throw new SyntaxException($"Place {place:X2} conflict");
             }
 
-            asmCodes[place] = "Reserve";
+            asmCodes[place] = RESERVE;
         }
     }
 }

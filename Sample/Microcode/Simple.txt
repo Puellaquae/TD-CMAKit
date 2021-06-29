@@ -1,7 +1,7 @@
 ﻿.START!:
 	AR=PC++
 	IR=MEM
-	<P1:30>
+	<P1>
 		0:ADD
 		2:IN
 		4:OUT
