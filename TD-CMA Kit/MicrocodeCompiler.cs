@@ -23,7 +23,7 @@ namespace TD_CMAKit
             A,
             B
         }
-
+        
         private enum RIGHT
         {
             PC,
@@ -775,137 +775,192 @@ namespace TD_CMAKit
 
         private void ReservePlaceForTestBranch()
         {
+            List<int> p1RequireAlloc = new();
+            List<int> p2RequireAlloc = new();
+            List<int> p3RequireAlloc = new();
+            List<int> p4RequireAlloc = new();
+
             for (var idx = 0; idx < codes.Length; idx++)
             {
                 string code = codes[idx];
                 if (code.StartsWith("<P"))
                 {
                     string[] tests = code.Trim('<', '>').Split(':');
-                    int basePlace;
+
                     if (tests.Length == 1)
                     {
-                        basePlace = AllocTestPlace(tests[0]);
-                        codes[idx] = $"<{tests[0]}:{basePlace:X2}>";
-                    }
-                    else
-                    {
-                        basePlace = Convert.ToInt32(tests[1], 16);
-                    }
-
-                    if (tests[0] == "P1")
-                    {
-                        basePlace &= 0b110000;
-                        for (idx++; idx < codes.Length; idx++)
+                        switch (tests[0])
                         {
-                            string bcode = codes[idx];
-                            string[] tokens = bcode.Trim(':').Split(':');
-                            if (tokens.Length != 2)
-                            {
+                            case "P1":
+                                p1RequireAlloc.Add(idx);
                                 break;
-                            }
-
-                            string branch = tokens[0].Trim();
-                            int offset = Convert.ToInt32(branch, 16);
-
-                            if (offset != (offset & 0b1111))
-                            {
-                                throw new SyntaxException($"{branch} out of P1 branch range, which is 0 to F. In {bcode}");
-                            }
-
-                            ReservePlace(basePlace + offset);
-                        }
-                    }
-                    else if (tests[0] == "P2")
-                    {
-                        basePlace &= 0b111100;
-                        for (idx++; idx < codes.Length; idx++)
-                        {
-                            string bcode = codes[idx];
-                            string[] tokens = bcode.Trim(':').Split(':');
-                            if (tokens.Length != 2)
-                            {
+                            case "P2":
+                                p2RequireAlloc.Add(idx);
                                 break;
-                            }
-
-                            string branch = tokens[0].Trim();
-                            int offset = Convert.ToInt32(branch, 16);
-
-                            if (offset != (offset & 0b11))
-                            {
-                                throw new SyntaxException($"{branch} out of P2 branch range, which is 0 to 3. In {bcode}");
-                            }
-
-                            ReservePlace(basePlace + offset);
+                            case "P3":
+                                p3RequireAlloc.Add(idx);
+                                break;
+                            case "P4":
+                                p4RequireAlloc.Add(idx);
+                                break;
                         }
+
+                        continue;
                     }
-                    else if (tests[0] == "P3")
+
+                    int basePlace = Convert.ToInt32(tests[1], 16);
+                    switch (tests[0])
                     {
-                        basePlace &= 0b101111;
-                        ReservePlace(basePlace + 0);
-                        ReservePlace(basePlace + 0b10000);
-                    }
-                    else if (tests[0] == "P4")
-                    {
-                        basePlace &= 0b011111;
-                        ReservePlace(basePlace + 0);
-                        ReservePlace(basePlace + 0b100000);
+                        case "P1":
+                            basePlace &= 0b110000;
+                            idx = GetNeedReservePlaceOffsetList(idx, 0b1111, "P1", out List<int> p1Offsets);
+                            ReserveTestBranchList(basePlace, p1Offsets);
+                            break;
+                        case "P2":
+                            basePlace &= 0b111100;
+                            idx = GetNeedReservePlaceOffsetList(idx, 0b11, "P2", out List<int> p2Offsets);
+                            ReserveTestBranchList(basePlace, p2Offsets);
+                            break;
+                        case "P3":
+                            basePlace &= 0b101111;
+                            ReservePlace(basePlace + 0);
+                            ReservePlace(basePlace + 0b10000);
+                            break;
+                        case "P4":
+                            basePlace &= 0b011111;
+                            ReservePlace(basePlace + 0);
+                            ReservePlace(basePlace + 0b100000);
+                            break;
                     }
                 }
+            }
+
+            foreach (int p1idx in p1RequireAlloc)
+            {
+                bool alloc = false;
+                GetNeedReservePlaceOffsetList(p1idx + 1, 0b1111, "P1", out List<int> p1Offsets);
+                for (int p = 0x10; p < 0x40; p += 0x10)
+                {
+                    bool satisfy = p1Offsets.All(offset => !asmCodes.ContainsKey(p + offset));
+
+                    if (!satisfy) continue;
+                    ReserveTestBranchList(p, p1Offsets);
+                    codes[p1idx] = $"<P1:{p:X2}>";
+                    alloc = true;
+                    break;
+                }
+
+                if (!alloc)
+                {
+                    throw new SyntaxException("No more place for test P1");
+                }
+            }
+
+            foreach (int p2idx in p2RequireAlloc)
+            {
+                bool alloc = false;
+                GetNeedReservePlaceOffsetList(p2idx + 1, 0b11, "P2", out List<int> p2Offsets);
+                for (int p = 0x04; p < 0x40; p += 0x04)
+                {
+                    bool satisfy = p2Offsets.All(offset => !asmCodes.ContainsKey(p + offset));
+
+                    if (!satisfy) continue;
+                    ReserveTestBranchList(p, p2Offsets);
+                    codes[p2idx] = $"<P2:{p:X2}>";
+                    alloc = true;
+                    break;
+                }
+
+                if (!alloc)
+                {
+                    throw new SyntaxException("No more place for test P2");
+                }
+            }
+
+            foreach (int p3idx in p3RequireAlloc)
+            {
+                int b = AllocTestP3Place();
+                codes[p3idx] = $"<P3:{b:X2}>";
+                ReservePlace(b);
+                ReservePlace(b + 0b10000);
+            }
+
+            foreach (int p4idx in p4RequireAlloc)
+            {
+                int b = AllocTestP4Place();
+                codes[p4idx] = $"<P4:{b:X2}>";
+                ReservePlace(b);
+                ReservePlace(b + 0b100000);
             }
         }
 
-        private int AllocTestPlace(string test)
+        private int GetNeedReservePlaceOffsetList(int idx, int offsetMask, string test, out List<int> offsetList)
         {
-            if (test == "P1")
+            offsetList = new List<int>();
+
+            for (idx++; idx < codes.Length; idx++)
             {
-                for (int p = 0x10; p < 0x40; p += 0x10)
+                string bcode = codes[idx];
+                string[] tokens = bcode.Trim(':').Split(':');
+                if (tokens.Length != 2)
                 {
-                    if (!asmCodes.ContainsKey(p))
-                    {
-                        return p;
-                    }
-                }
-            }
-            else if (test == "P2")
-            {
-                for (int p = 0x04; p < 0x40; p += 0x04)
-                {
-                    if (!asmCodes.ContainsKey(p))
-                    {
-                        return p;
-                    }
-                }
-            }
-            else if (test == "P3")
-            {
-                for (int p = 0x01; p < 0x10; p++)
-                {
-                    if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x10))
-                    {
-                        return p;
-                    }
+                    break;
                 }
 
-                for (int p = 0x20; p < 0x30; p++)
+                string branch = tokens[0].Trim();
+                int offset = Convert.ToInt32(branch, 16);
+
+                if (offset != (offset & offsetMask))
                 {
-                    if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x10))
-                    {
-                        return p;
-                    }
+                    throw new SyntaxException($"{branch} out of {test} branch range, which is 0 to {offsetMask}. In {bcode}");
                 }
+
+                offsetList.Add(offset);
             }
-            else if (test == "P4")
+
+            return idx;
+        }
+
+        private void ReserveTestBranchList(int basePlace, List<int> offsetList)
+        {
+            foreach (int offset in offsetList)
             {
-                for (int p = 0x01; p < 0x20; p++)
+                ReservePlace(basePlace + offset);
+            }
+        }
+
+        private int AllocTestP3Place()
+        {
+            for (int p = 0x01; p < 0x10; p++)
+            {
+                if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x10))
                 {
-                    if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x20))
-                    {
-                        return p;
-                    }
+                    return p;
                 }
             }
 
-            throw new SyntaxException($"No more place for test {test}");
+            for (int p = 0x20; p < 0x30; p++)
+            {
+                if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x10))
+                {
+                    return p;
+                }
+            }
+
+            throw new SyntaxException("No more place for test P3");
+        }
+
+        private int AllocTestP4Place()
+        {
+            for (int p = 0x01; p < 0x20; p++)
+            {
+                if (!asmCodes.ContainsKey(p) && !asmCodes.ContainsKey(p + 0x20))
+                {
+                    return p;
+                }
+            }
+
+            throw new SyntaxException("No more place for test P4");
         }
 
         private void ReservePlace(int place, bool maybeReserveAgain = false)
