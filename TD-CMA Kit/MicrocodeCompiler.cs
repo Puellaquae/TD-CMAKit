@@ -21,7 +21,8 @@ namespace TD_CMAKit
             RD,
             SP,
             A,
-            B
+            B,
+            Discard
         }
         
         private enum RIGHT
@@ -98,6 +99,7 @@ namespace TD_CMAKit
             return left switch
             {
                 "RS" => throw new SyntaxException("RS register is ReadOnly."),
+                "_" => LEFT.Discard,
                 _ => (LEFT)Enum.Parse(typeof(LEFT), left)
             };
         }
@@ -153,6 +155,7 @@ namespace TD_CMAKit
                 LEFT.RD => "LDRi",
                 LEFT.A => "LDA",
                 LEFT.B => "LDB",
+                LEFT.Discard => "NOP",
                 _ => throw new NotImplementedException(),
             };
         }

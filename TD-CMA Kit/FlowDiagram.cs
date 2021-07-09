@@ -139,6 +139,10 @@ namespace TD_CMAKit
                     code = "PC->" + tmp[0];
                     twoLine = true;
                 }
+                else if (tmp[0] == "_")
+                {
+                    code = tmp[1];
+                }
                 else
                 {
                     code = tmp[1] + "->" + tmp[0];
