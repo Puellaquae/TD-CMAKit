@@ -23,9 +23,21 @@ namespace TD_CMAKit
         {
             Dictionary<CodeNode, (int x, int y)> nodeLayout = new();
             (int width, int height) = BuildLayout(node, nodeLayout);
-            SKBitmap bitmap = new(new SKImageInfo(width, height));
+
+            SKBitmap bitmap = new(width, height);
             FillLayout(nodeLayout, bitmap);
             SaveImage(imgFilePath, bitmap);
+        }
+
+        public static byte[] GetBlob(CodeNode node)
+        {
+            Dictionary<CodeNode, (int x, int y)> nodeLayout = new();
+            (int width, int height) = BuildLayout(node, nodeLayout);
+            SKBitmap bitmap = new(width, height);
+            FillLayout(nodeLayout, bitmap);
+            SKImage img = SKImage.FromBitmap(bitmap);
+            SKData data = img.Encode(SKEncodedImageFormat.Png, 100);
+            return data.ToArray();
         }
 
         private static void SaveImage(string imgFilePath, SKBitmap bitmap)
@@ -53,11 +65,12 @@ namespace TD_CMAKit
 
                 canvas.DrawRect(x - BoxWidth / 2, y - BoxHeight / 2, BoxWidth, BoxHeight, blackPaint);
 
+                using FileStream fontFile = new("FiraCode-Regular.ttf", FileMode.Open);
                 SKPaint fontPaint = new()
                 {
                     Color = SKColors.Black,
                     TextSize = 48,
-                    Typeface = SKTypeface.FromFamilyName("Fira Code"),
+                    Typeface = SKTypeface.FromStream(fontFile),
                     IsAntialias = true
                 };
 

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "TD_CMAKit": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:65358;http://localhost:65359"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "mainAssemblyName": "TD_CMAKit.dll",
+  "assemblyRootFolder": "managed",
+  "debugLevel": 0,
+  "assets": [
+    {
+      "behavior": "assembly",
+      "name": "HarfBuzzSharp.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "SkiaSharp.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "SkiaSharp.HarfBuzz.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "System.Collections.Concurrent.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "System.Collections.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "System.Linq.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "System.Private.CoreLib.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "System.Private.Uri.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "System.Runtime.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "System.Runtime.InteropServices.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "System.Runtime.InteropServices.JavaScript.dll"
+    },
+    {
+      "behavior": "assembly",
+      "name": "TD_CMAKit.dll"
+    },
+    {
+      "virtualPath": "runtimeconfig.bin",
+      "behavior": "vfs",
+      "name": "supportFiles/0_runtimeconfig.bin"
+    },
+    {
+      "virtualPath": "/usr/share/zoneinfo/",
+      "behavior": "vfs",
+      "name": "dotnet.timezones.blat"
+    },
+    {
+      "behavior": "dotnetwasm",
+      "name": "dotnet.wasm"
+    },
+    {
+      "virtualPath": "/FiraCode-Regular.ttf",
+      "behavior": "vfs",
+      "name": "FiraCode-Regular.ttf"
+    }
+  ],
+  "remoteSources": [],
+  "pthreadPoolSize": 0
+}

@@ -2,22 +2,29 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
+
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <WasmMainJSPath>main.js</WasmMainJSPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <WasmEmitSymbolMap>false</WasmEmitSymbolMap>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Microcode.txt" />
+    <Content Include="index.html" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="2.80.2" />
-    <PackageReference Include="SkiaSharp.HarfBuzz" Version="2.80.2" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="2.8.2.3" />
+    <PackageReference Include="SkiaSharp.HarfBuzz" Version="2.88.3" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="2.88.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Microcode.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
+    <NativeFileReference Include="C:\Users\shentukeqin\.nuget\packages\harfbuzzsharp.nativeassets.webassembly\2.8.2.3\build\netstandard1.0\libHarfBuzzSharp.a\3.1.12\libHarfBuzzSharp.a" />
+    <NativeFileReference Include="C:\Users\shentukeqin\.nuget\packages\skiasharp.nativeassets.webassembly\2.88.3\build\netstandard1.0\libSkiaSharp.a\3.1.12\simd\libSkiaSharp.a" />
   </ItemGroup>
 
 </Project>
