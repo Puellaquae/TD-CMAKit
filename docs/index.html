@@ -1,26 +1,81 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Sample</title>
     <meta charset="UTF-8">
+    <style>
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .left-block {}
+
+        .right-block {}
+
+        .btn-line {
+            display: inline-flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-direction: row;
+            width: 91%;
+        }
+
+        button {
+            font-size: 1.5rem;
+        }
+
+        textarea {
+            font-size: 1rem;
+            width: 90%;
+            height: 30em;
+            font-family: "Fira Code", "Cascadia Code", monospace;
+        }
+
+        .lower-block {
+            grid-column-start: 1;
+            grid-column-end: 4;
+        }
+
+        #pmc, #ah, #bmc, #basm, #imginfo {
+            font-family: "Fira Code", "Cascadia Code", monospace;
+        }
+    </style>
 </head>
+
 <body>
     <script type="module" src="main.js"></script>
-    <h2>微指令：</h2>
-    <textarea id="microcode"></textarea>
-    <button id="btnM">处理</button>
-    <h2>伪微指令：</h2>
-    <div id="pmc"></div>
-    <h2>指令提示：</h2>
-    <div id="ah"></div>
-    <h2>二进制形式：</h2>
-    <div id="bmc"></div>
-    <h2>流程图：</h2>
-    <img src="" alt="" id="img" width="100%">
-    <h2>指令：</h2>
-    <textarea id="asmcode"></textarea>
-    <button id="btnA">处理</button>
-    <h2>二进制形式：</h2>
-    <div id="basm"></div>
+    <div class="container">
+        <div class="left-block">
+            <div class="btn-line">
+                <h2>微指令：</h2>
+                <button id="btnM">处理</button>
+            </div>
+            <textarea id="microcode"></textarea>
+            <h2>伪微指令：</h2>
+            <div id="pmc"></div>
+            <h2>指令提示：</h2>
+            <div id="ah"></div>
+            <h2>二进制形式：</h2>
+            <div id="bmc"></div>
+        </div>
+        <div class="right-block">
+            <div class="btn-line">
+                <h2>指令：</h2>
+                <button id="btnA">处理</button>
+            </div>
+            <textarea id="asmcode"></textarea>
+            <h2>二进制形式：</h2>
+            <div id="basm"></div>
+        </div>
+        <div class="lower-block">
+            <h2>流程图：</h2>
+            <div id="imginfo" hidden></div>
+            <img src="" alt="" id="img" width="100%">
+        </div>
+    </div>
+
 </body>
+
 </html>

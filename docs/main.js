@@ -1,45 +1,71 @@
-import { dotnet } from './dotnet.js'
+let worker = new Worker("worker.js", { type: "module" });
 
-// Get exported methods from the .NET assembly
-const { getAssemblyExports, getConfig } = await dotnet
-	.withDiagnosticTracing(false)
-	.create();
-
-const config = getConfig();
-const exports = await getAssemblyExports(config.mainAssemblyName);
-
-// Access JSExport methods using exports.<Namespace>.<Type>.<Method>
 function processM() {
-	let microtext = document.getElementById("microcode");
-
-	const result = exports.TD_CMAKit.Program.MicroCodeImg(microtext.value);
-	const result2 = exports.TD_CMAKit.Program.MicroCode(microtext.value);
-
-	let blob = new Blob([result], { 'type': 'image/png' });
-	let url = URL.createObjectURL(blob);
-	let img = document.getElementById("img");
-	img.src = url;
-
-	let mc = JSON.parse(result2);
-	
+	const microtext = document.getElementById("microcode");
 	const bmc = document.getElementById("bmc");
-	bmc.innerText = mc.bmc.join("\n");
-
 	const ah = document.getElementById("ah");
-	ah.innerText = mc.ah.join("\n");
-
 	const pmc = document.getElementById("pmc");
-	pmc.innerText = mc.pmc.join("\n");
+	const img = document.getElementById("img");
+	const imginfo = document.getElementById("imginfo");
+
+	worker.onmessage = e => {
+		if (e.data.fn === "b") {
+			if (e.data.stats === "ok") {
+				bmc.innerText = e.data.data.bmc.join("\n");
+				ah.innerText = e.data.data.ah.join("\n");
+				pmc.innerText = e.data.data.pmc.join("\n");
+			} else {
+				pmc.innerText = e.data.err;
+			}
+			worker.postMessage({
+				fn: "c",
+				data: microtext.value
+			});
+		} else if (e.data.fn === "c") {
+			if (e.data.stats === "ok") {
+				let blob = new Blob([e.data.data], { 'type': 'image/png' });
+				let url = URL.createObjectURL(blob);
+				imginfo.hidden = true;
+				img.src = url;
+			} else {
+				imginfo.innerText = e.data.err;
+			}
+		}
+	}
+	pmc.innerText = "Processing...";
+	ah.innerText = "";
+	bmc.innerText = "";
+	img.src = "";
+	imginfo.hidden = false;
+	imginfo.innerText = "Processing...";
+	worker.postMessage({
+		fn: "b",
+		data: microtext.value
+	});
+
 }
 
 // Access JSExport methods using exports.<Namespace>.<Type>.<Method>
 function processA() {
-	let microtext = document.getElementById("asmcode");
-
-	const result = exports.TD_CMAKit.Program.AsmCode(microtext.value);
-
+	const microtext = document.getElementById("asmcode");
 	const basm = document.getElementById("basm");
-	basm.innerText = result.join("\n");
+
+	worker.onmessage = e => {
+		if (e.data.fn === "a") {
+			if (e.data.stats === "ok") {
+				basm.innerText = e.data.data.join("\n");
+			} else {
+				basm.innerText = e.data.err;
+			}
+		}
+	}
+
+	worker.postMessage({
+		fn: "a",
+		data: microtext.value
+	});
+
+	basm.innerText = "Processing...";
 }
 
 const btnM = document.getElementById("btnM");
